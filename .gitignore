@@ -1,4 +1,4 @@
-# Salidas generadas
+# Generated outputs
 output/
 *.blend
 *.blend1
@@ -11,12 +11,14 @@ __pycache__/
 .venv/
 venv/
 
-# Sistema
+# System files
 .DS_Store
 
-# Assets/texturas descargadas (regenerables: get_textures.py / fetch_3dtiles.py / Hyper3D)
+# Downloaded assets and textures (regenerable via get_textures.py,
+# fetch_3dtiles.py, or Hyper3D)
 textures/
-assets/
+assets/*
+!assets/placeforge-thumbnail.jpg
 *.glb
 *.hdr
 *.exr
