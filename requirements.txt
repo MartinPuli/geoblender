@@ -1,0 +1,6 @@
+# Dependencias de la skill maps-to-3d
+requests>=2.28
+
+# Blender headless como modulo de Python (opcional: alternativa al binario Blender).
+# Requiere Python 3.11. Si preferis usar la app Blender instalada, no hace falta.
+# bpy>=4.2

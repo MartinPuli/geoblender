@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maps to 3D"
+  short_description: "Editable real places with held-out QA"
+  default_prompt: "Use $maps-to-3d to construct this place as editable Blender blocks, refine source-aware buildings and colors, and validate them on held-out views."

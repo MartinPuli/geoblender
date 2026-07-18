@@ -1,0 +1,22 @@
+# Salidas generadas
+output/
+*.blend
+*.blend1
+*.png
+!docs/**/*.png
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+
+# Assets/texturas descargadas (regenerables: get_textures.py / fetch_3dtiles.py / Hyper3D)
+textures/
+assets/
+*.glb
+*.hdr
+*.exr

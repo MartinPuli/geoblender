@@ -1,0 +1,65 @@
+{
+  "center": {"lat": 0.0, "lon": 0.0, "label": "Synthetic mixed block"},
+  "radius": 180,
+  "buildings": [
+    {
+      "osm_id": 101,
+      "footprint": [[-55, -35], [-15, -35], [-15, 5], [-55, 5]],
+      "height": 16.0,
+      "height_source": "levels",
+      "levels": 5,
+      "type": "apartments",
+      "building_material": "brick",
+      "color": [0.55, 0.24, 0.14],
+      "color_source": "material_prior",
+      "color_confidence": 0.60,
+      "roof_shape": "flat"
+    },
+    {
+      "osm_id": 102,
+      "footprint": [[5, -35], [35, -35], [35, -5], [5, -5]],
+      "height": 32.0,
+      "height_source": "levels",
+      "levels": 10,
+      "type": "office",
+      "building_material": "glass",
+      "color": [0.20, 0.42, 0.60],
+      "color_source": "osm:building:colour",
+      "color_confidence": 0.95,
+      "roof_color": [0.35, 0.37, 0.39],
+      "roof_color_source": "osm:roof:colour",
+      "roof_color_confidence": 0.95,
+      "roof_shape": "flat"
+    },
+    {
+      "osm_id": 103,
+      "footprint": [[-45, 25], [25, 25], [25, 55], [-45, 55]],
+      "height": 9.0,
+      "height_source": "default",
+      "type": "warehouse",
+      "building_material": "concrete",
+      "color": [0.62, 0.61, 0.58],
+      "color_source": "material_prior",
+      "color_confidence": 0.60,
+      "roof_shape": "skillion"
+    },
+    {
+      "osm_id": 104,
+      "footprint": [[50, 20], [72, 26], [66, 50], [44, 44]],
+      "height": 8.0,
+      "height_source": "default",
+      "type": "house",
+      "color": [0.82, 0.69, 0.53],
+      "color_source": "semantic_prior",
+      "color_confidence": 0.40,
+      "roof_shape": "gabled"
+    }
+  ],
+  "roads": [
+    {"path": [[-100, 12], [100, 12]], "width": 8.0, "type": "secondary", "z": 0.06}
+  ],
+  "areas": [
+    {"polygon": [[-95, -75], [95, -75], [95, -55], [-95, -55]], "type": "park", "color": [0.35, 0.52, 0.30], "z": 0.03}
+  ],
+  "special_features": []
+}

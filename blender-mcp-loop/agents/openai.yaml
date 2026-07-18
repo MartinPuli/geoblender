@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blender MCP Block Loop"
+  short_description: "Live Blender blocks with held-out QA"
+  default_prompt: "Use $blender-mcp-loop to build source-aware editable blocks in my live Blender, refine facade and color quality, and deliver the best held-out checkpoint."

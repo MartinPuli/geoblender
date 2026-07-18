@@ -1,0 +1,10 @@
+{
+  "merge_distant_buildings": false,
+  "editable_radius": 500,
+  "samples": 8,
+  "resolution": [640, 400],
+  "facade": {
+    "geometry_radius": 500,
+    "max_windows_per_building": 120
+  }
+}
