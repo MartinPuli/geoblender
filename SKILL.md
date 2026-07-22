@@ -259,6 +259,25 @@ aerial reference (`image_colors`, active only with a Google API key) is
 permitted. The image is never pasted into the scene as geometry or texture, and
 sampled colors are reported as `imagery_aerial`, not facade measurements.
 
+### Sourcing reference evidence
+
+Get real evidence before arguing about shapes. What works from this sandbox:
+
+- **Wikimedia / Wikipedia.** Query the MediaWiki API with `curl` and follow the
+  `imageinfo` URL to the full-resolution file. Reliable, licensed, and it also
+  returns the article's infobox numbers (capacity, dimensions, year), which are
+  citable per-run measurements.
+- **Esri World Imagery** tiles give measurable overheads at ~0.24 m/px. Use them
+  to *measure*, not to texture: segment by color to separate playing surface,
+  surrounding vegetation, and structure, then convert pixel spans to meters
+  through the tile's ground resolution and write the result into `style.json` as
+  a verified measurement with its source.
+- **Google Images does not load** in the sandboxed browser. Do not burn
+  iterations on it.
+
+Reference imagery stays outside the scene. Its only products are numbers in
+`style.json` and a side-by-side comparison during evaluation.
+
 The repository contains experimental Google 3D Tiles utilities, but they are
 outside this skill. If the user explicitly requests that separate workflow, do
 not mix its outputs with the block project or present its render as work
@@ -281,6 +300,65 @@ Do not optimize raw pixels across unmatched views or use a subjective impression
 as the sole criterion. Compare masks/silhouettes before materials; compare color
 inside matched building masks and ignore sky, cast shadows, and specular highlights.
 No single-view improvement may be promoted to the core if holdout quality falls.
+
+**A green `eval_report.json` is not a passing render.** The gates count things
+and check that they do not overlap; they cannot see a roof floating fifteen
+meters above the last row. Always look at the images. See
+`football-stadium-to-3d/SKILL.md` for the worked failure case.
+
+## Per-run polish pass
+
+The generator produces a plausible average of its category, and a real place is
+never the average. When the build is structurally right but visibly wrong, do not
+patch `scripts/`: write `output/<slug>/<kind>_polish.py` and apply it to the
+saved `.blend`. A correction only earns its way into the core with a synthetic
+test and an unrelated counterexample (see the generalization contract).
+
+- Save `<slug>_blocks_pre_polish.blend` before the first pass so any section can
+  be bisected against the untouched build.
+- Structure the script as numbered, independently readable sections. Each one
+  opens with a comment stating **what the generator got wrong, how it was
+  measured, and what the target value is**. Those comments are the bug list that
+  later becomes core work, so write them for the next reader, not for yourself.
+- **Every section must be idempotent.** Aim at absolute targets — a top at
+  22.1 m, an outer radius of 90 m, `rotation_euler.x = +pi/2` — never at
+  relative factors like `scale *= 0.8` or "rotate 180 more degrees", which
+  compound on the second run. Rebuild-and-replace and delete-what-matches are
+  both naturally idempotent; accumulate-a-delta is not.
+- Tag every shader node network the script creates and remove nodes with that
+  tag before rebuilding, or re-running stacks duplicate networks.
+- Guards that read "only fix this if it still looks broken" silently stop firing
+  once an earlier section changes the scene. Prefer an unconditional write to an
+  absolute target over a conditional write to a relative one.
+
+Worked example, ~23 sections and every one of them a real generator defect:
+`/Users/martinezequielpulitano/martinpulitano/render/output/racing-cilindro-one-shot/stadium_polish.py`.
+
+## Iteration craft
+
+- **Work in the feature's own frame, not the world's.** Mapped features are
+  rotated at arbitrary angles (the Cilindro's pitch sits 77.1 deg off the world
+  X axis). Derive an `(u, v)` frame once, from an object that is unambiguously
+  square to the feature and that the script never writes to, and convert to
+  world coordinates only at the last moment. Building from axis-aligned world
+  bounding boxes skews every derived object.
+- **AgX desaturates hard.** A nominal 0.5 base color renders as mid grey.
+  Compensate with higher saturation and luminance in the material, then judge on
+  the render. Beware: several materials drive Base Color from a noise node with
+  two colors, so the Principled input is not what you see — trace the node tree
+  before editing a color.
+- **Never scale flat objects in Z.** Scaling about `z = 0` moves a 0.2 m-thick
+  slab's midpoint proportionally, so light banks, decks, and floor plates end up
+  floating. Translate thin geometry to its target height; scale only things that
+  genuinely start at the ground.
+- **Measure, do not argue.** A material-ID render — one flat emissive color per
+  material, then count pixels — answers in one pass what several agents cannot
+  settle by inspection. That is how a grey blotch was identified as stair-core
+  boxes starting 4 m inside the intended outer radius.
+- **Print an audit at the end of each pass.** Report the ratios and clearances
+  the design actually claims (envelope circularity, depth at three angles, roof
+  clearance over the last row). Numbers in the log survive; an impression of a
+  render does not.
 
 ## Resources
 
