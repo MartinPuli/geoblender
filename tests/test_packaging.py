@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 import cityconfig  # noqa: E402
 import citylog     # noqa: E402
 import citycache   # noqa: E402
+import blocks_pipeline  # noqa: E402
 
 _ENV_KEYS = (
     "MAPS3D_TEXTURES", "MAPS3D_HDRI", "GEOBLENDER_CACHE",
@@ -107,3 +108,39 @@ def test_key_hash_is_sha1_hex():
     assert len(h) == 40
     assert all(c in "0123456789abcdef" for c in h)
     assert citycache.key_hash("hola") == citycache.key_hash("hola")  # estable
+
+
+def test_one_command_pipeline_finds_explicit_blender(tmp_path):
+    executable = tmp_path / "blender-test"
+    executable.write_text("#!/bin/sh\nexit 0\n")
+    executable.chmod(0o755)
+    assert blocks_pipeline.find_blender(str(executable)) == str(executable.resolve())
+
+
+def test_one_command_pipeline_uses_safe_default_output():
+    path = blocks_pipeline.default_output("Example Place / unsafe")
+    assert path.name == "example-place-unsafe"
+    assert path.parent.name == "output"
+
+
+def test_one_command_pipeline_rejects_incomplete_evaluation(tmp_path):
+    report = tmp_path / "eval_report.json"
+    report.write_text(json.dumps({
+        "complete": False,
+        "gates": {"facades": {"pass": False}, "files": {"pass": True}},
+    }))
+    try:
+        blocks_pipeline.require_complete_evaluation(report)
+    except SystemExit as exc:
+        assert "facades" in str(exc)
+    else:
+        raise AssertionError("incomplete evaluation must fail the pipeline")
+
+
+def test_package_exposes_maps_to_3d_entrypoint():
+    root = os.path.join(os.path.dirname(__file__), "..")
+    pyproject = open(os.path.join(root, "pyproject.toml"), encoding="utf-8").read()
+    assert 'maps-to-3d = "blocks_pipeline:main"' in pyproject
+    assert '"stadium_detail"' in pyproject
+    for module in ("architectural_detail", "hospital_detail", "highway_detail"):
+        assert '"%s"' % module in pyproject

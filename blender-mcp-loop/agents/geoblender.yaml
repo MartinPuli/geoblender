@@ -1,4 +1,4 @@
 interface:
   display_name: "Blender MCP Block Loop"
-  short_description: "Live Blender blocks with held-out QA"
-  default_prompt: "Use $blender-mcp-loop to build source-aware editable blocks in my live Blender, refine facade and color quality, and deliver the best held-out checkpoint."
+  short_description: "Specialized live Blender scenes with held-out QA"
+  default_prompt: "Use $blender-mcp-loop to build this source-aware place in my live Blender, route buildings and infrastructure to specialized skills, and deliver the best held-out checkpoint."

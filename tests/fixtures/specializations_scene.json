@@ -1,0 +1,106 @@
+{
+  "center": {"lat": 0.0, "lon": 0.0, "label": "Synthetic specialization district"},
+  "radius": 220,
+  "scene_kind": "hospital",
+  "specializations": ["architectural_buildings", "hospital", "highway"],
+  "buildings": [
+    {
+      "osm_id": 1001,
+      "type": "apartments",
+      "building_use": "residential",
+      "footprint": [[-70, -12], [-38, -12], [-38, 16], [-70, 16], [-70, -12]],
+      "height": 24, "min_height": 0, "levels": 8, "height_source": "explicit",
+      "color": [0.72, 0.46, 0.35], "color_source": "osm:building:colour",
+      "color_confidence": 0.95, "source": "osm"
+    },
+    {
+      "osm_id": 1002,
+      "type": "office",
+      "building_use": "office",
+      "building_material": "glass",
+      "footprint": [[-30, -14], [2, -14], [2, 18], [-30, 18], [-30, -14]],
+      "height": 31, "min_height": 0, "levels": 9, "height_source": "levels",
+      "color": [0.38, 0.52, 0.60], "color_source": "material_prior",
+      "color_confidence": 0.60, "source": "osm"
+    },
+    {
+      "osm_id": 1003,
+      "type": "school",
+      "building_use": "school",
+      "footprint": [[10, -16], [50, -16], [50, 8], [40, 8], [40, 18], [10, 18], [10, -16]],
+      "height": 13, "min_height": 0, "levels": 4, "height_source": "levels",
+      "color": [0.80, 0.68, 0.38], "color_source": "semantic_prior",
+      "color_confidence": 0.40, "source": "osm"
+    },
+    {
+      "osm_id": 1004,
+      "type": "warehouse",
+      "building_use": "industrial",
+      "footprint": [[58, -16], [102, -16], [102, 17], [58, 17], [58, -16]],
+      "height": 11, "min_height": 0, "levels": 2, "height_source": "explicit",
+      "color": [0.54, 0.57, 0.58], "color_source": "material_prior",
+      "color_confidence": 0.60, "source": "osm"
+    },
+    {
+      "osm_id": 1005,
+      "type": "house",
+      "building_use": "residential",
+      "footprint": [[-91, 29], [-69, 29], [-69, 47], [-91, 47], [-91, 29]],
+      "height": 7, "min_height": 0, "levels": 2, "height_source": "levels",
+      "roof_shape": "gabled", "roof_height": 2.1,
+      "color": [0.74, 0.72, 0.63], "color_source": "semantic_prior",
+      "color_confidence": 0.40, "source": "osm"
+    },
+    {
+      "osm_id": 1006,
+      "type": "hotel",
+      "building_use": "hotel",
+      "footprint": [[-60, 29], [-24, 29], [-24, 59], [-60, 59], [-60, 29]],
+      "height": 22, "min_height": 0, "levels": 7, "height_source": "levels",
+      "color": [0.68, 0.60, 0.52], "color_source": "semantic_prior",
+      "color_confidence": 0.40, "source": "osm"
+    },
+    {
+      "osm_id": 2001,
+      "type": "hospital",
+      "building_use": "hospital",
+      "amenity": "hospital",
+      "footprint": [[-12, 30], [55, 30], [55, 61], [34, 61], [34, 75], [5, 75], [5, 61], [-12, 61], [-12, 30]],
+      "height": 21, "min_height": 0, "levels": 6, "height_source": "explicit",
+      "color": [0.78, 0.80, 0.78], "color_source": "semantic_prior",
+      "color_confidence": 0.40, "source": "osm"
+    },
+    {
+      "osm_id": 1007,
+      "type": "civic",
+      "building_use": "government",
+      "footprint": [[65, 31], [101, 31], [101, 63], [65, 63], [65, 31]],
+      "height": 16, "min_height": 0, "levels": 4, "height_source": "levels",
+      "color": [0.68, 0.66, 0.61], "color_source": "semantic_prior",
+      "color_confidence": 0.40, "source": "osm"
+    }
+  ],
+  "roads": [
+    {
+      "osm_id": 3001, "type": "motorway", "path": [[-118, -55], [0, -55], [118, -55]],
+      "width": 12.8, "width_source": "explicit", "lanes": 3, "oneway": "yes",
+      "bridge": false, "tunnel": false, "surface": "asphalt", "ref": "A1",
+      "z": 0.06, "source": "osm"
+    },
+    {
+      "osm_id": 3002, "type": "motorway", "path": [[118, -72], [0, -72], [-118, -72]],
+      "width": 12.8, "width_source": "explicit", "lanes": 3, "oneway": "yes",
+      "bridge": true, "tunnel": false, "layer": 1, "surface": "asphalt", "ref": "A1",
+      "z": 5.0, "source": "osm"
+    },
+    {
+      "osm_id": 3003, "type": "residential", "path": [[-112, 23], [112, 23]],
+      "width": 6.0, "width_source": "semantic_default", "z": 0.06, "source": "osm"
+    }
+  ],
+  "areas": [
+    {"osm_id": 4001, "type": "park", "polygon": [[-112, 82], [112, 82], [112, 105], [-112, 105], [-112, 82]], "z": 0.03, "color": [0.36, 0.53, 0.31], "source": "osm"}
+  ],
+  "special_features": [],
+  "sources": ["synthetic semantic fixture"]
+}

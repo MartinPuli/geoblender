@@ -1,0 +1,4 @@
+interface:
+  display_name: "Football Stadium to 3D"
+  short_description: "Detailed editable football stadiums in Blender"
+  default_prompt: "Use $football-stadium-to-3d to construct this football stadium with detailed stands, pitch, roofs, lighting, access, and held-out validation."

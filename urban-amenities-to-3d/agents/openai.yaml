@@ -1,0 +1,4 @@
+interface:
+  display_name: "Urban Amenities and Utilities to 3D"
+  short_description: "Build furniture, smart utilities, and recreation"
+  default_prompt: "Use $urban-amenities-to-3d to construct mapped street furniture, smart utilities, and recreation equipment in Blender."

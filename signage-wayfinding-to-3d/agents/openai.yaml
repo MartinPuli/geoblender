@@ -1,0 +1,4 @@
+interface:
+  display_name: "Signage, Crossings and Wayfinding to 3D"
+  short_description: "Build signs, crossings, stops, and wayfinding"
+  default_prompt: "Use $signage-wayfinding-to-3d to construct mapped signs, crossings, and wayfinding as editable Blender objects."

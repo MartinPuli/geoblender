@@ -42,6 +42,7 @@ except ImportError:
 
 HERE = Path(__file__).resolve().parent
 BLENDER_BUILD = HERE / "blender_build.py"
+import urban_detail
 
 OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
@@ -342,6 +343,11 @@ DEFAULT_HEIGHT = {
     "obelisk": 67.0, "tower": 45.0, "monument": 28.0, "mast": 40.0, "chimney": 35.0,
 }
 
+# OSM uses these values for a roofed footprint that is intentionally open
+# below.  Treating them as normal buildings creates a large false wall volume
+# and hides the very covered area the map is describing.
+OPEN_COVER_TYPES = {"roof", "canopy", "carport"}
+
 # Types built as tapered spires or towers instead of roofed boxes.
 LANDMARK_TYPES = {"obelisk", "tower", "monument", "mast", "chimney"}
 
@@ -375,6 +381,15 @@ def _hex_to_rgb(s):
     return None
 
 
+def structure_mode(tags):
+    """Classify building massing without relying on a place or feature name."""
+    part = str(tags.get("building:part", "")).strip().lower()
+    building = str(tags.get("building", "")).strip().lower()
+    if part in OPEN_COVER_TYPES or building in OPEN_COVER_TYPES:
+        return "roof_only"
+    return "enclosed"
+
+
 def parse_height(tags):
     """Return (height_m, min_height_m)."""
     h = None
@@ -386,7 +401,8 @@ def parse_height(tags):
         m = re.search(r"(\d+(?:\.\d+)?)", tags["building:levels"])
         if m:
             h = float(m.group(1)) * LEVEL_HEIGHT
-    if h is None:
+    mode = structure_mode(tags)
+    if h is None and mode == "enclosed":
         btype = tags.get("building") or tags.get("building:part", "_default")
         if btype in ("yes", "true", "1"):
             btype = "_default"
@@ -401,7 +417,17 @@ def parse_height(tags):
         m = re.search(r"(\d+(?:\.\d+)?)", tags["building:min_level"])
         if m:
             min_h = float(m.group(1)) * LEVEL_HEIGHT
-    h = max(h, min_h + 2.0)
+    if mode == "roof_only":
+        # In Simple 3D Buildings, height is the roof top and min_height is the
+        # clear underside.  Sparse roof/canopy tagging commonly omits one or
+        # both, so infer a conservative walkable clearance and thin roof deck.
+        if min_h <= 0.0:
+            min_h = max(2.2, h - 0.35) if h is not None else 3.0
+        if h is None:
+            h = min_h + 0.35
+        h = max(h, min_h + 0.18)
+    else:
+        h = max(h, min_h + 2.0)
     return h, min_h
 
 
@@ -411,13 +437,16 @@ def height_source(tags):
         return "explicit"
     if "building:levels" in tags and re.search(r"\d", tags["building:levels"]):
         return "levels"
+    if structure_mode(tags) == "roof_only":
+        return "inferred_clearance"
     return "default"
 
 
 def building_confidence(tags):
     """Estimate building reconstruction confidence from OSM data quality."""
     src = height_source(tags)
-    base = {"explicit": 0.9, "levels": 0.75, "default": 0.4}[src]
+    base = {"explicit": 0.9, "levels": 0.75, "default": 0.4,
+            "inferred_clearance": 0.45}[src]
     if tags.get("name"):
         base = min(1.0, base + 0.05)
     return round(base, 2)
@@ -523,14 +552,58 @@ def build_overpass_query(south, west, north, east):
   way["natural"="water"]({b});
   relation["natural"="water"]({b});
   way["waterway"="riverbank"]({b});
-  way["leisure"~"park|garden|pitch|playground"]({b});
-  way["landuse"~"grass|forest|meadow|recreation_ground|village_green"]({b});
-  way["natural"~"wood|scrub|grassland"]({b});
+  way["leisure"~"park|garden|pitch|playground|stadium"]({b});
+  relation["leisure"~"^(pitch|stadium)$"]["type"="multipolygon"]({b});
+  way["landuse"~"grass|forest|meadow|orchard|recreation_ground|village_green|residential|allotments|garages"]({b});
+  relation["landuse"~"^(residential|allotments|garages)$"]["type"="multipolygon"]({b});
+  way["natural"~"wood|scrub|shrubbery|grassland"]({b});
+  way["natural"="tree_row"]({b});
+  way["barrier"="kerb"]({b});
+  node["barrier"="kerb"]({b});
+  nwr["traffic_calming"~"^(island|painted_island|table)$"]({b});
+  way["area:highway"="traffic_island"]({b});
+  relation["area:highway"="traffic_island"]["type"="multipolygon"]({b});
+  way["power"~"^(line|minor_line)$"]({b});
+  node["power"~"^(pole|tower)$"]({b});
+  nwr["power"="substation"]({b});
+  node["power"="transformer"]({b});
+  node["man_made"="utility_pole"]({b});
+  way["communication"="line"]({b});
+  way["man_made"="pipeline"]({b});
+  node["pipeline"~"^(valve|measurement)$"]({b});
+  nwr["man_made"="pumping_station"]({b});
+  node["telecom"~"^(distribution_point|connection_point)$"]({b});
+  node["man_made"="street_cabinet"]["utility"~"^(power|telecom|water|gas|sewerage|heating)$"]({b});
+  node["man_made"="manhole"]({b});
+  node["inlet"]({b});
+  nwr["road_marking"]({b});
+  way["covered"~"^(yes|roof)$"]({b});
+  relation["covered"~"^(yes|roof)$"]["type"="multipolygon"]({b});
+  nwr["amenity"="shelter"]({b});
+  nwr["amenity"~"^(hospital|clinic)$"]({b});
+  nwr["healthcare"~"^(hospital|clinic|centre|center)$"]({b});
+  node["natural"="tree"]({b});
+  node["highway"="street_lamp"]({b});
+  node["amenity"~"^(bench|waste_basket|drinking_water|bicycle_parking|post_box|telephone|clock|recycling|fountain|parking_meter|charging_station|vending_machine|parcel_locker|atm)$"]({b});
+  node["barrier"~"^(bollard|block|gate|lift_gate|swing_gate)$"]({b});
+  way["barrier"~"^(fence|wall|hedge)$"]({b});
+  node["emergency"~"^(fire_hydrant|defibrillator)$"]({b});
+  node["man_made"~"^(street_cabinet|flagpole|charge_point)$"]({b});
+  node["leisure"~"^(picnic_table|fitness_station)$"]({b});
+  node["highway"~"^(traffic_signals|bus_stop|crossing)$"]({b});
+  node["highway"="elevator"]({b});
+  node["public_transport"="platform"]["bus"]({b});
+  nwr["traffic_sign"]({b});
+  nwr["advertising"]({b});
+  nwr["tourism"="information"]({b});
+  nwr["tourism"="artwork"]({b});
+  nwr["historic"~"^(memorial|monument)$"]({b});
+  nwr["playground"]({b});
   way["aeroway"~"^(runway|taxiway|apron|helipad)$"]({b});
   relation["aeroway"="apron"]["type"="multipolygon"]({b});
-  nwr["memorial"="obelisk"]({b});
+  nwr["memorial"]({b});
   nwr["man_made"~"^(obelisk|tower|mast|chimney)$"]({b});
-  nwr["historic"="monument"]["height"]({b});
+  nwr["amenity"="fountain"]({b});
 );
 out geom;
 """.strip()
@@ -544,17 +617,24 @@ AIRPORT_LINE_WIDTH = {
 }
 
 
-def _tag_meters(value, default):
-    """Parse a simple OSM width such as "45", "45 m", or "150 ft"."""
+def _tag_meters(value, default, minimum=0.5):
+    """Parse a simple OSM distance with common metric/imperial units."""
     if value is None:
         return float(default)
     m = re.search(r"(-?\d+(?:\.\d+)?)", str(value))
     if not m:
         return float(default)
     n = float(m.group(1))
-    if "ft" in str(value).lower() or "feet" in str(value).lower():
+    unit_value = str(value).lower()
+    if "mm" in unit_value:
+        n *= 0.001
+    elif "cm" in unit_value:
+        n *= 0.01
+    elif "ft" in unit_value or "feet" in unit_value or "'" in unit_value:
         n *= 0.3048
-    return max(0.5, n)
+    elif "inch" in unit_value or '"' in unit_value:
+        n *= 0.0254
+    return max(float(minimum), n)
 
 
 def parse_special_features(data, project):
@@ -585,10 +665,385 @@ def parse_special_features(data, project):
             "source": "osm",
         })
 
+    def add_covered_surface(tags, geom, osm_id=None, osm_type=None):
+        """Normalize a non-building covered polygon as an open roof volume."""
+        pts = to_xy(geom)
+        if len(pts) < 4:
+            return
+        if math.hypot(pts[0][0] - pts[-1][0], pts[0][1] - pts[-1][1]) > 1.0:
+            # covered=yes on an open highway/path describes passage semantics,
+            # not a roof footprint. Only closed rings become cover geometry.
+            return
+        top = _tag_meters(tags.get("height"), 3.35)
+        underside = _tag_meters(tags.get("min_height"), max(2.2, top - 0.35))
+        top = max(top, underside + 0.18)
+        features.append({
+            "geometry": "surface",
+            "family": "covered_structure",
+            "kind": (tags.get("amenity") or tags.get("public_transport")
+                     or tags.get("covered") or "canopy"),
+            "structure_mode": "roof_only",
+            "polygon": pts,
+            "height": round(top, 2),
+            "min_height": round(underside, 2),
+            "height_source": "explicit" if tags.get("height") else "inferred_clearance",
+            "name": tags.get("name") or tags.get("ref"),
+            "osm_id": osm_id,
+            "osm_type": osm_type,
+            "source": "osm",
+            "detail_source": "procedural_inference",
+        })
+
+    def add_point_object(tags, element):
+        matched = urban_detail.classify_tags(tags)
+        if matched is None:
+            return
+        family, kind = matched
+        if kind == "traffic_sign" and element.get("type") != "node":
+            # A sign value on a way/area may encode a regulation, not a mapped
+            # physical support. Only explicit physical nodes become geometry.
+            return
+        if kind in ("stop_line", "power_substation_kiosk") \
+                and element.get("type") != "node":
+            # Ways/relations have stronger line/surface geometry normalized
+            # below. A centroid proxy would duplicate and weaken that evidence.
+            return
+        if kind == "pedestrian_elevator" and element.get("type") != "node":
+            # Open elevator ways are inclined-elevator axes; closed ways are
+            # indoor cage outlines. Neither should degrade to a centroid box.
+            return
+        if kind in ("traffic_island", "painted_island") \
+                and tags.get("area:highway") == "traffic_island":
+            # The mapped outline below is stronger evidence than a centroid
+            # proxy, so never build both representations.
+            return
+        defaults = urban_detail.normalized_defaults(kind)
+        if "lat" in element and "lon" in element:
+            xy = project(element["lat"], element["lon"])
+        else:
+            points = to_xy(element.get("geometry", []))
+            if not points:
+                return
+            xy = (sum(point[0] for point in points) / len(points),
+                  sum(point[1] for point in points) / len(points))
+        size = urban_detail.parse_size(tags.get("size"))
+        item = {
+            "geometry": "point",
+            "family": family,
+            "kind": kind,
+            "point": [xy[0], xy[1]],
+            "height": round(_tag_meters(
+                tags.get("height") or (tags.get("kerb:height")
+                                       if kind == "curb_ramp" else None),
+                defaults["height"], 0.015 if family == "road_surface" else 0.08), 3),
+            "width": round(_tag_meters(tags.get("width"), defaults["width"], 0.05), 2),
+            "depth": round(_tag_meters(tags.get("depth"), defaults["depth"], 0.02), 2),
+            "min_height": round(_tag_meters(tags.get("min_height"), 0.0, 0.0), 2),
+            "direction": urban_detail.parse_bearing(
+                tags.get("direction") or tags.get("traffic_sign:direction")),
+            "height_source": "explicit" if tags.get("height") else "semantic_default",
+            "dimension_source": "explicit_size" if size else (
+                "explicit_width" if tags.get("width") else "semantic_default"),
+            "name": tags.get("name") or tags.get("ref"),
+            "ref": tags.get("ref"),
+            "destination": tags.get("destination"),
+            "text": tags.get("name") or tags.get("ref") or tags.get("destination"),
+            "inscription": tags.get("inscription"),
+            "artist_name": tags.get("artist_name"),
+            "material": tags.get("material"),
+            "support": tags.get("support"),
+            "location": tags.get("location"),
+            "utility": tags.get("utility"),
+            "transformer": tags.get("transformer"),
+            "substation": tags.get("substation"),
+            "telecom": tags.get("telecom"),
+            "telecom_medium": tags.get("telecom:medium"),
+            "pipeline": tags.get("pipeline"),
+            "substance": tags.get("substance"),
+            "diameter": tags.get("diameter"),
+            "usage": tags.get("usage"),
+            "pressure": tags.get("pressure"),
+            "manhole": tags.get("manhole"),
+            "inlet": tags.get("inlet"),
+            "shape": tags.get("shape"),
+            "colour": tags.get("colour"),
+            "road_marking": tags.get("road_marking"),
+            "stroke": tags.get("stroke"),
+            "sides": tags.get("sides"),
+            "lit": tags.get("lit"),
+            "luminous": tags.get("luminous"),
+            "shelter": tags.get("shelter"),
+            "bench": tags.get("bench"),
+            "bin": tags.get("bin"),
+            "passenger_information_display": tags.get("passenger_information_display"),
+            "departures_board": tags.get("departures_board"),
+            "tactile_paving": tags.get("tactile_paving"),
+            "crossing": tags.get("crossing"),
+            "crossing_markings": tags.get("crossing:markings"),
+            "crossing_markings_colour": tags.get("crossing:markings:colour"),
+            "kerb": tags.get("kerb"),
+            "kerb_height": tags.get("kerb:height"),
+            "wheelchair": tags.get("wheelchair"),
+            "incline": tags.get("incline"),
+            "surface": tags.get("surface"),
+            "traffic_calming": tags.get("traffic_calming"),
+            "crossing_continuous": tags.get("crossing:continuous"),
+            "level": tags.get("level"),
+            "door_width": tags.get("door:width"),
+            "door_height": tags.get("door:height"),
+            "length": tags.get("length"),
+            "goods": tags.get("goods"),
+            "bicycle": tags.get("bicycle"),
+            "handrail": tags.get("handrail"),
+            "crossing_island": tags.get("crossing:island"),
+            "traffic_sign": tags.get("traffic_sign"),
+            "maxspeed": tags.get("maxspeed"),
+            "maxheight": tags.get("maxheight"),
+            "maxweight": tags.get("maxweight"),
+            "maxwidth": tags.get("maxwidth"),
+            "overtaking": tags.get("overtaking"),
+            "hazard": tags.get("hazard"),
+            "message": tags.get("message"),
+            "vending": tags.get("vending"),
+            "capacity": tags.get("capacity"),
+            "fitness_station": tags.get("fitness_station"),
+            "design": tags.get("design"),
+            "cables": tags.get("cables"),
+            "wires": tags.get("wires"),
+            "voltage": tags.get("voltage"),
+            "size": tags.get("size"),
+            "source_tag": next((f"{key}={tags[key]}" for key in (
+                "traffic_sign", "advertising", "information", "artwork_type",
+                "memorial", "historic", "amenity", "playground", "emergency",
+                "man_made", "highway", "traffic_calming", "power",
+                "road_marking", "telecom", "pipeline", "substance", "kerb",
+                "traffic_calming")
+                if tags.get(key)), None),
+            "osm_id": element.get("id"),
+            "osm_type": element.get("type"),
+            "source": "osm",
+            "detail_source": "procedural_inference",
+        }
+        if size:
+            item["panel_size"] = [size[0], size[1]]
+            item["panel_width"], item["panel_height"] = size
+        features.append(item)
+
     for el in data.get("elements", []):
         tags = el.get("tags", {}) or {}
         kind = tags.get("aeroway")
         etype = el.get("type")
+        add_point_object(tags, el)
+        if etype == "way" and tags.get("road_marking") in \
+                ("stop_line", "lane_divider") and el.get("geometry"):
+            path = to_xy(el["geometry"])
+            if len(path) >= 2:
+                marking_kind = str(tags["road_marking"])
+                features.append({
+                    "geometry": "line", "family": "road_surface",
+                    "kind": marking_kind, "path": path,
+                    "width": round(_tag_meters(tags.get("width"),
+                                                0.42 if marking_kind == "stop_line" else 0.14,
+                                                0.03), 3),
+                    "stroke": tags.get("stroke") or "solid",
+                    "colour": tags.get("colour"),
+                    "direction": tags.get("direction"),
+                    "osm_id": el.get("id"), "osm_type": etype,
+                    "source": "osm", "detail_source": "mapped_marking_axis",
+                })
+        if (etype == "way" and tags.get("barrier") in ("fence", "wall", "hedge")
+                and el.get("geometry")):
+            path = to_xy(el["geometry"])
+            if len(path) >= 2:
+                kind_defaults = {
+                    "fence": (1.5, 0.08), "wall": (1.8, 0.25),
+                    "hedge": (1.4, 0.60),
+                }
+                default_h, default_w = kind_defaults[tags["barrier"]]
+                features.append({
+                    "geometry": "line", "family": "residential_boundary",
+                    "kind": tags["barrier"], "path": path,
+                    "height": round(_tag_meters(tags.get("height"), default_h, 0.15), 2),
+                    "width": round(_tag_meters(tags.get("width"), default_w, 0.04), 2),
+                    "height_source": "explicit" if tags.get("height") else "semantic_default",
+                    "name": tags.get("name"), "osm_id": el.get("id"),
+                    "osm_type": etype, "source": "osm",
+                    "detail_source": "procedural_inference",
+                })
+        if etype == "way" and tags.get("barrier") == "kerb" and el.get("geometry"):
+            path = to_xy(el["geometry"])
+            if len(path) >= 2:
+                kerb_kind = str(tags.get("kerb") or "regular").lower()
+                default_height = 0.0 if kerb_kind in ("flush", "lowered") else 0.12
+                features.append({
+                    "geometry": "line", "family": "road_surface", "kind": "kerb",
+                    "path": path, "height": round(_tag_meters(
+                        tags.get("height") or tags.get("kerb:height"), default_height, 0.0), 3),
+                    "width": round(_tag_meters(tags.get("width"), 0.22, 0.05), 2),
+                    "kerb": kerb_kind, "surface": tags.get("surface"),
+                    "osm_id": el.get("id"), "osm_type": etype, "source": "osm",
+                    "detail_source": "mapped_axis+semantic_profile",
+                })
+        if etype == "way" and tags.get("natural") == "tree_row" and el.get("geometry"):
+            path = to_xy(el["geometry"])
+            if len(path) >= 2:
+                features.append({
+                    "geometry": "line", "family": "vegetation", "kind": "tree_row",
+                    "path": path,
+                    "height": round(_tag_meters(tags.get("height"), 7.5, 0.5), 2),
+                    "tree_spacing": round(_tag_meters(tags.get("tree_spacing"), 7.0, 1.5), 2),
+                    "leaf_type": tags.get("leaf_type"), "leaf_cycle": tags.get("leaf_cycle"),
+                    "osm_id": el.get("id"), "osm_type": etype, "source": "osm",
+                    "detail_source": "mapped_row_axis+procedural_instances",
+                })
+        if etype == "way" and tags.get("highway") in ("steps", "footway", "path", "elevator") \
+                and el.get("geometry"):
+            is_steps = tags.get("highway") == "steps"
+            is_elevator = tags.get("highway") == "elevator"
+            conveying = str(tags.get("conveying") or "").lower()
+            is_moving = conveying in ("yes", "forward", "backward", "reversible")
+            is_ramp = (tags.get("highway") in ("footway", "path")
+                       and tags.get("incline") not in (None, "", "0", "0%")
+                       and str(tags.get("wheelchair") or "").lower() in
+                       ("yes", "designated", "limited"))
+            if is_steps or is_elevator or is_moving or is_ramp:
+                path = to_xy(el["geometry"])
+                if len(path) >= 2:
+                    kind = ("inclined_elevator" if is_elevator else
+                            "escalator" if is_steps and is_moving else
+                            "moving_walkway" if is_moving else
+                            "steps" if is_steps else "pedestrian_ramp")
+                    features.append({
+                        "geometry": "line", "family": "pedestrian_access",
+                        "kind": kind, "path": path,
+                        "width": tags.get("width"),
+                        "incline": tags.get("incline"),
+                        "step_count": tags.get("step_count"),
+                        "step_height": tags.get("step:height"),
+                        "conveying": tags.get("conveying"),
+                        "ramp": tags.get("ramp"),
+                        "ramp_wheelchair": tags.get("ramp:wheelchair"),
+                        "ramp_bicycle": tags.get("ramp:bicycle"),
+                        "ramp_stroller": tags.get("ramp:stroller"),
+                        "handrail": tags.get("handrail"),
+                        "handrail_left": tags.get("handrail:left"),
+                        "handrail_right": tags.get("handrail:right"),
+                        "handrail_center": tags.get("handrail:center"),
+                        "wheelchair": tags.get("wheelchair"),
+                        "surface": tags.get("surface"),
+                        "level": tags.get("level"),
+                        "osm_id": el.get("id"), "osm_type": etype,
+                        "source": "osm", "detail_source": "mapped_access_axis",
+                    })
+        if etype == "way" and tags.get("power") in ("line", "minor_line") \
+                and el.get("geometry"):
+            path = to_xy(el["geometry"])
+            if len(path) >= 2:
+                features.append({
+                    "geometry": "line", "family": "utility_network",
+                    "kind": "overhead_power_line", "power": tags.get("power"),
+                    "path": path, "height": _numeric_tag(tags, "height"),
+                    "cables": tags.get("cables"), "wires": tags.get("wires"),
+                    "voltage": tags.get("voltage"), "circuits": tags.get("circuits"),
+                    "osm_id": el.get("id"), "osm_type": etype, "source": "osm",
+                    "detail_source": "mapped_axis+procedural_conductor_proxy",
+                })
+        if etype == "way" and tags.get("communication") == "line" \
+                and el.get("geometry"):
+            path = to_xy(el["geometry"])
+            if len(path) >= 2:
+                features.append({
+                    "geometry": "line", "family": "utility_network",
+                    "kind": "communication_line", "path": path,
+                    "location": tags.get("location"),
+                    "height": _numeric_tag(tags, "height"),
+                    "cables": tags.get("cables"),
+                    "telecom_medium": tags.get("telecom:medium"),
+                    "operator": tags.get("operator"),
+                    "osm_id": el.get("id"), "osm_type": etype,
+                    "source": "osm", "detail_source": "mapped_communication_axis",
+                })
+        if etype == "way" and tags.get("man_made") == "pipeline" \
+                and el.get("geometry"):
+            path = to_xy(el["geometry"])
+            if len(path) >= 2:
+                features.append({
+                    "geometry": "line", "family": "fluid_network",
+                    "kind": "pipeline", "path": path,
+                    "location": tags.get("location"),
+                    "height": _numeric_tag(tags, "height"),
+                    "diameter": tags.get("diameter"),
+                    "substance": tags.get("substance"),
+                    "usage": tags.get("usage"),
+                    "pressure": tags.get("pressure"),
+                    "operator": tags.get("operator"),
+                    "osm_id": el.get("id"), "osm_type": etype,
+                    "source": "osm", "detail_source": "mapped_pipeline_axis",
+                })
+        if etype == "way" and tags.get("power") == "substation" \
+                and el.get("geometry"):
+            polygon = to_xy(el["geometry"])
+            if len(polygon) >= 4:
+                features.append({
+                    "geometry": "surface", "family": "utility_network",
+                    "kind": "power_substation", "polygon": polygon,
+                    "substation": tags.get("substation"),
+                    "location": tags.get("location") or "outdoor",
+                    "voltage": tags.get("voltage"),
+                    "barrier": tags.get("barrier"),
+                    "osm_id": el.get("id"), "osm_type": etype,
+                    "source": "osm", "detail_source": "mapped_facility_outline",
+                })
+        elif etype == "relation" and tags.get("power") == "substation":
+            for member in el.get("members", []):
+                if member.get("role") == "outer" and member.get("geometry"):
+                    polygon = to_xy(member["geometry"])
+                    if len(polygon) >= 4:
+                        features.append({
+                            "geometry": "surface", "family": "utility_network",
+                            "kind": "power_substation", "polygon": polygon,
+                            "substation": tags.get("substation"),
+                            "location": tags.get("location") or "outdoor",
+                            "voltage": tags.get("voltage"),
+                            "barrier": tags.get("barrier"),
+                            "osm_id": el.get("id"), "osm_type": etype,
+                            "source": "osm", "detail_source": "mapped_facility_outline",
+                        })
+        if etype == "way" and tags.get("area:highway") == "traffic_island" \
+                and el.get("geometry"):
+            polygon = to_xy(el["geometry"])
+            if len(polygon) >= 4:
+                features.append({
+                    "geometry": "surface", "family": "road_surface",
+                    "kind": "traffic_island", "polygon": polygon,
+                    "height": round(_tag_meters(tags.get("height"), 0.18, 0.02), 2),
+                    "surface": tags.get("surface"), "kerb": tags.get("kerb"),
+                    "osm_id": el.get("id"), "osm_type": etype, "source": "osm",
+                    "detail_source": "mapped_outline",
+                })
+        elif etype == "relation" and tags.get("area:highway") == "traffic_island":
+            for member in el.get("members", []):
+                if member.get("role") == "outer" and member.get("geometry"):
+                    polygon = to_xy(member["geometry"])
+                    if len(polygon) >= 4:
+                        features.append({
+                            "geometry": "surface", "family": "road_surface",
+                            "kind": "traffic_island", "polygon": polygon,
+                            "height": round(_tag_meters(tags.get("height"), 0.18, 0.02), 2),
+                            "surface": tags.get("surface"), "kerb": tags.get("kerb"),
+                            "osm_id": el.get("id"), "osm_type": etype,
+                            "source": "osm", "detail_source": "mapped_outline",
+                        })
+        is_nonbuilding_cover = (tags.get("covered") in ("yes", "roof")
+                                or tags.get("amenity") == "shelter") \
+            and "building" not in tags and "building:part" not in tags
+        if is_nonbuilding_cover:
+            if etype == "way" and el.get("geometry"):
+                add_covered_surface(tags, el["geometry"], el.get("id"), etype)
+            elif etype == "relation":
+                for mem in el.get("members", []):
+                    if mem.get("role") == "outer" and mem.get("geometry"):
+                        add_covered_surface(tags, mem["geometry"], el.get("id"), etype)
         if kind in AIRPORT_LINE_WIDTH and etype == "way" and el.get("geometry"):
             pts = to_xy(el["geometry"])
             if len(pts) >= 2:
@@ -616,12 +1071,8 @@ def parse_special_features(data, project):
         # Generic landmarks get identity from tags, never from a hard-coded name or
         # embedded coordinates in core code.
         landmark_kind = None
-        if tags.get("memorial") == "obelisk" or tags.get("man_made") == "obelisk":
-            landmark_kind = "obelisk"
-        elif tags.get("man_made") in ("tower", "mast", "chimney"):
+        if tags.get("man_made") in ("tower", "mast", "chimney"):
             landmark_kind = tags["man_made"]
-        elif tags.get("historic") == "monument" and tags.get("height"):
-            landmark_kind = "monument"
         if landmark_kind:
             xy = None
             if etype == "node" and "lat" in el and "lon" in el:
@@ -632,9 +1083,8 @@ def parse_special_features(data, project):
                     xy = (sum(p[0] for p in points) / len(points),
                           sum(p[1] for p in points) / len(points))
             if xy is not None:
-                default_h = {"obelisk": 35.0, "tower": 45.0,
-                             "mast": 40.0, "chimney": 35.0,
-                             "monument": 22.0}[landmark_kind]
+                default_h = {"tower": 45.0, "mast": 40.0,
+                             "chimney": 35.0}[landmark_kind]
                 features.append({
                     "geometry": "point",
                     "family": "landmark",
@@ -700,11 +1150,87 @@ def clip_special_features(features, H):
     return out
 
 
+def classify_scene_specializations(osm):
+    """Return every semantic specialization present in an OSM response."""
+    tags = [(el.get("tags") or {}) for el in osm.get("elements", [])]
+    aeroways = {item.get("aeroway") for item in tags}
+    result = []
+    if aeroways & {"runway", "taxiway", "apron", "aerodrome"}:
+        result.append("airport")
+    stadium = any(
+        item.get("leisure") == "stadium"
+        or item.get("building") in ("stadium", "grandstand")
+        or item.get("building:part") == "grandstand"
+        for item in tags)
+    football = any(
+        str(item.get("sport", "")).lower() in ("soccer", "football", "futsal")
+        and item.get("leisure") in ("stadium", "pitch")
+        for item in tags)
+    if stadium and football:
+        result.append("football_stadium")
+    elif stadium:
+        result.append("stadium")
+    hospital = any(
+        str(item.get("amenity", "")).lower() in ("hospital", "clinic")
+        or str(item.get("healthcare", "")).lower() in (
+            "hospital", "clinic", "centre", "center")
+        or str(item.get("building", "")).lower() == "hospital"
+        for item in tags)
+    if hospital:
+        result.append("hospital")
+    if any(str(item.get("highway", "")).lower() in (
+            "motorway", "motorway_link", "trunk", "trunk_link") for item in tags):
+        result.append("highway")
+    if any(item.get("landuse") == "residential" or str(item.get("building", "")).lower()
+           in ("house", "detached", "semidetached_house", "terrace", "bungalow",
+               "apartments", "residential", "dormitory") for item in tags):
+        result.append("residential_neighborhood")
+    urban_families = {matched[0] for item in tags
+                      for matched in [urban_detail.classify_tags(item)] if matched}
+    if urban_families & {"signage", "transit"}:
+        result.append("signage_wayfinding")
+    if "public_art" in urban_families:
+        result.append("monuments_public_art")
+    if urban_families & {"street_furniture", "vegetation", "recreation"}:
+        result.append("urban_amenities")
+    if any(
+            item.get("barrier") == "kerb"
+            or item.get("traffic_calming") in ("island", "painted_island")
+            or item.get("traffic_calming") == "table"
+            or item.get("highway") in ("steps", "elevator")
+            or item.get("conveying") in ("yes", "forward", "backward", "reversible")
+            or item.get("area:highway") == "traffic_island"
+            or item.get("natural") in ("tree_row", "wood", "scrub", "shrubbery")
+            or item.get("landuse") in ("forest", "orchard")
+            or item.get("power") in (
+                "line", "minor_line", "pole", "tower", "substation", "transformer")
+            or item.get("road_marking") in ("stop_line", "lane_divider")
+            or item.get("communication") == "line"
+            or item.get("man_made") in ("pipeline", "pumping_station")
+            or item.get("pipeline") in ("valve", "measurement")
+            or (item.get("man_made") in ("utility_pole", "street_cabinet")
+                and item.get("utility") in ("power", "telecom"))
+            or item.get("cycleway") == "lane"
+            or any(item.get(key) == "lane" for key in (
+                "cycleway:left", "cycleway:right", "cycleway:both"))
+            or any(key in item for key in (
+                "turn:lanes", "turn:lanes:forward", "turn:lanes:backward",
+                "bus:lanes", "bus:lanes:forward", "bus:lanes:backward",
+                "parking:left", "parking:right", "parking:both",
+                "sidewalk", "sidewalk:left", "sidewalk:right", "sidewalk:both"))
+            for item in tags):
+        result.append("streetscape_infrastructure")
+    if any("building" in item or "building:part" in item for item in tags):
+        result.append("architectural_buildings")
+    return result
+
+
 def classify_scene_kind(osm, label=""):
-    """Conservatively classify scenes for specialized materials and cameras."""
-    kinds = {(el.get("tags") or {}).get("aeroway") for el in osm.get("elements", [])}
-    if kinds & {"runway", "taxiway", "apron", "aerodrome"}:
-        return "airport"
+    """Choose a primary scene kind while retaining all specializations elsewhere."""
+    specializations = classify_scene_specializations(osm)
+    for kind in ("airport", "football_stadium", "stadium", "hospital", "highway"):
+        if kind in specializations:
+            return kind
     return "urban"
 
 
@@ -987,6 +1513,9 @@ def parse_osm(data, project):
             "min_height": round(min_h, 2),
             "color": [round(c, 3) for c in color],
             "type": tags.get("building") or tags.get("building:part", "yes"),
+            "structure_mode": structure_mode(tags),
+            "covered": (tags.get("covered") in ("yes", "roof")
+                        or structure_mode(tags) == "roof_only"),
             "is_building_part": "building:part" in tags,
             "building_part": tags.get("building:part"),
             # --- F2a: per-building provenance and confidence ---
@@ -1013,24 +1542,108 @@ def parse_osm(data, project):
             width, color, rtype, z = 4.5, RAIL_COLOR, "rail:" + tags["railway"], 0.05
         else:
             hw = tags.get("highway", "_default")
-            width = ROAD_WIDTH.get(hw, ROAD_WIDTH["_default"])
+            default_width = ROAD_WIDTH.get(hw, ROAD_WIDTH["_default"])
+            width = _tag_meters(tags.get("width"), default_width)
             color = PED_COLOR if hw in ("footway", "path", "pedestrian", "cycleway", "track") else ROAD_COLOR
             rtype, z = hw, 0.06
         if is_bridge:
             z = BRIDGE_Z                       # elevate the bridge deck
             color = BRIDGE_COLOR
             width = max(width, 8.0)
-        roads.append({"path": pts, "width": width, "color": list(color), "type": rtype, "z": z})
+        roads.append({
+            "path": pts, "width": width, "color": list(color), "type": rtype, "z": z,
+            "osm_id": tags.get("_osm_id"), "osm_type": tags.get("_osm_type"),
+            "lanes": _numeric_tag(tags, "lanes"),
+            "oneway": tags.get("oneway"), "bridge": is_bridge,
+            "tunnel": tags.get("tunnel") in ("yes", "true", "1"),
+            "layer": _numeric_tag(tags, "layer"), "surface": tags.get("surface"),
+            "ref": tags.get("ref"), "name": tags.get("name"),
+            "maxspeed": tags.get("maxspeed"), "lit": tags.get("lit"),
+            "turn_lanes": tags.get("turn:lanes"),
+            "turn_lanes_forward": tags.get("turn:lanes:forward"),
+            "turn_lanes_backward": tags.get("turn:lanes:backward"),
+            "lane_markings": tags.get("lane_markings"),
+            "placement": tags.get("placement"),
+            "cycleway": tags.get("cycleway"),
+            "cycleway_left": tags.get("cycleway:left"),
+            "cycleway_right": tags.get("cycleway:right"),
+            "cycleway_both": tags.get("cycleway:both"),
+            "cycleway_width": tags.get("cycleway:width"),
+            "cycleway_left_width": tags.get("cycleway:left:width"),
+            "cycleway_right_width": tags.get("cycleway:right:width"),
+            "cycleway_buffer": tags.get("cycleway:buffer"),
+            "cycleway_both_buffer": tags.get("cycleway:both:buffer"),
+            "cycleway_left_buffer": tags.get("cycleway:left:buffer"),
+            "cycleway_right_buffer": tags.get("cycleway:right:buffer"),
+            "cycleway_separation": tags.get("cycleway:separation"),
+            "cycleway_both_separation": tags.get("cycleway:both:separation"),
+            "cycleway_left_separation": tags.get("cycleway:left:separation"),
+            "cycleway_right_separation": tags.get("cycleway:right:separation"),
+            "bus_lanes": tags.get("bus:lanes"),
+            "bus_lanes_forward": tags.get("bus:lanes:forward"),
+            "bus_lanes_backward": tags.get("bus:lanes:backward"),
+            "psv_lanes": tags.get("psv:lanes"),
+            "psv_lanes_forward": tags.get("psv:lanes:forward"),
+            "psv_lanes_backward": tags.get("psv:lanes:backward"),
+            "lanes_bus": tags.get("lanes:bus"),
+            "lanes_psv": tags.get("lanes:psv"),
+            "parking_left": tags.get("parking:left"),
+            "parking_right": tags.get("parking:right"),
+            "parking_both": tags.get("parking:both"),
+            "parking_left_orientation": tags.get("parking:left:orientation"),
+            "parking_right_orientation": tags.get("parking:right:orientation"),
+            "parking_both_orientation": tags.get("parking:both:orientation"),
+            "parking_left_width": tags.get("parking:left:width"),
+            "parking_right_width": tags.get("parking:right:width"),
+            "parking_both_width": tags.get("parking:both:width"),
+            "sidewalk": tags.get("sidewalk"),
+            "sidewalk_left": tags.get("sidewalk:left"),
+            "sidewalk_right": tags.get("sidewalk:right"),
+            "sidewalk_both": tags.get("sidewalk:both"),
+            "sidewalk_left_width": tags.get("sidewalk:left:width"),
+            "sidewalk_right_width": tags.get("sidewalk:right:width"),
+            "sidewalk_both_width": tags.get("sidewalk:both:width"),
+            "sidewalk_left_surface": tags.get("sidewalk:left:surface"),
+            "sidewalk_right_surface": tags.get("sidewalk:right:surface"),
+            "sidewalk_both_surface": tags.get("sidewalk:both:surface"),
+            "sidewalk_left_kerb": tags.get("sidewalk:left:kerb"),
+            "sidewalk_right_kerb": tags.get("sidewalk:right:kerb"),
+            "sidewalk_both_kerb": tags.get("sidewalk:both:kerb"),
+            "pedestrian_access_specialized": (
+                tags.get("highway") in ("steps", "elevator")
+                or str(tags.get("conveying") or "").lower() in
+                   ("yes", "forward", "backward", "reversible")
+                or (tags.get("highway") in ("footway", "path")
+                    and tags.get("incline") not in (None, "", "0", "0%")
+                    and str(tags.get("wheelchair") or "").lower() in
+                        ("yes", "designated", "limited"))),
+            "width_source": "explicit" if tags.get("width") else "semantic_default",
+            "source": "osm",
+        })
 
-    def add_area(tags, ring_lonlat, kind):
+    def add_area(tags, ring_lonlat, kind, osm_id=None, osm_type=None):
         pts = to_xy(ring_lonlat)
         if len(pts) < 4:
             return
         if kind == "water":
             color, z = [0.30, 0.48, 0.62], 0.04
+        elif kind in ("stadium_site", "hospital_site"):
+            color, z = [0.30, 0.32, 0.34], 0.025
+        elif kind == "residential_zone":
+            color, z = [0.58, 0.52, 0.43], 0.018
         else:  # green area
             color, z = [0.42, 0.58, 0.36], 0.03
-        areas.append({"polygon": pts, "z": z, "color": color, "type": tags.get("leisure") or tags.get("landuse") or tags.get("natural") or kind})
+        areas.append({
+            "polygon": pts, "z": z, "color": color,
+            "type": tags.get("leisure") or tags.get("landuse") or tags.get("natural") or kind,
+            "sport": tags.get("sport"), "surface": tags.get("surface"),
+            "residential": tags.get("residential"),
+            "leaf_type": tags.get("leaf_type"), "leaf_cycle": tags.get("leaf_cycle"),
+            "height": _numeric_tag(tags, "height"),
+            "amenity": tags.get("amenity"), "healthcare": tags.get("healthcare"),
+            "name": tags.get("name"), "osm_id": osm_id,
+            "osm_type": osm_type, "source": "osm",
+        })
 
     for el in data.get("elements", []):
         tags = el.get("tags", {}) or {}
@@ -1047,21 +1660,36 @@ def parse_osm(data, project):
             continue
 
         if ("highway" in tags or "railway" in tags) and etype == "way" and el.get("geometry"):
-            add_road(tags, _ring_from_geometry(el["geometry"]))
+            road_tags = dict(tags)
+            road_tags["_osm_id"] = el.get("id")
+            road_tags["_osm_type"] = etype
+            add_road(road_tags, _ring_from_geometry(el["geometry"]))
             continue
 
         is_water = tags.get("natural") == "water" or tags.get("waterway") == "riverbank"
+        is_stadium_area = tags.get("leisure") == "stadium"
+        is_hospital_area = (tags.get("amenity") in ("hospital", "clinic")
+                            or tags.get("healthcare") in (
+                                "hospital", "clinic", "centre", "center"))
+        is_residential_area = tags.get("landuse") == "residential"
         is_green = (tags.get("leisure") in ("park", "garden", "pitch", "playground")
-                    or tags.get("landuse") in ("grass", "forest", "meadow", "recreation_ground", "village_green")
-                    or tags.get("natural") in ("wood", "scrub", "grassland"))
-        if is_water or is_green:
-            kind = "water" if is_water else "green"
+                    or tags.get("landuse") in ("grass", "forest", "meadow", "orchard",
+                                               "recreation_ground", "village_green")
+                    or tags.get("natural") in ("wood", "scrub", "shrubbery", "grassland"))
+        if is_water or is_green or is_stadium_area or is_hospital_area or is_residential_area:
+            kind = ("water" if is_water else
+                    "stadium_site" if is_stadium_area else
+                    "hospital_site" if is_hospital_area else "green")
+            if is_residential_area:
+                kind = "residential_zone"
             if etype == "way" and el.get("geometry"):
-                add_area(tags, _ring_from_geometry(el["geometry"]), kind)
+                add_area(tags, _ring_from_geometry(el["geometry"]), kind,
+                         el.get("id"), etype)
             elif etype == "relation":
                 for mem in el.get("members", []):
                     if mem.get("role") == "outer" and mem.get("geometry"):
-                        add_area(tags, _ring_from_geometry(mem["geometry"]), kind)
+                        add_area(tags, _ring_from_geometry(mem["geometry"]), kind,
+                                 el.get("id"), etype)
 
     buildings, _ = resolve_building_parts(buildings)
     return buildings, roads, areas
@@ -1300,6 +1928,7 @@ def main():
     # Clip everything to the requested radius; Overpass returns entire long roads.
     buildings, roads, areas = clip_scene(buildings, roads, areas, args.radius)
     special_features = clip_special_features(special_features, args.radius)
+    specializations = classify_scene_specializations(osm)
     scene_kind = classify_scene_kind(osm, label)
     print(f"   -> {len(buildings)} buildings, {len(roads)} roads, {len(areas)} areas "
           f"(water/green), {len(special_features)} special layers [{scene_kind}]")
@@ -1357,7 +1986,8 @@ def main():
             building["color"] = airport_palette[idx % len(airport_palette)]
     print(f"   -> architectural profile: {profile}")
 
-    height_sources = {"explicit": 0, "levels": 0, "default": 0}
+    height_sources = {"explicit": 0, "levels": 0, "default": 0,
+                      "inferred_clearance": 0}
     for building in buildings:
         source = building.get("height_source", "default")
         height_sources[source] = height_sources.get(source, 0) + 1
@@ -1367,6 +1997,30 @@ def main():
         building.get("outline_osm_id") for building in buildings
         if building.get("outline_osm_id") is not None
     })
+    covered_structure_count = sum(
+        1 for building in buildings if building.get("structure_mode") == "roof_only")
+    covered_structure_count += sum(
+        1 for feature in special_features
+        if feature.get("family") == "covered_structure")
+    urban_object_count = sum(
+        1 for feature in special_features
+        if feature.get("family") in (
+            "street_furniture", "vegetation", "signage", "transit",
+            "public_art", "recreation"))
+    urban_family_counts = {}
+    for feature in special_features:
+        family = str(feature.get("family") or "infrastructure")
+        urban_family_counts[family] = urban_family_counts.get(family, 0) + 1
+    football_pitches = [
+        area for area in areas
+        if area.get("type") == "pitch"
+        and str(area.get("sport") or "").lower() in ("soccer", "football", "futsal")
+    ]
+    stadium_buildings = [
+        building for building in buildings
+        if str(building.get("type") or "").lower() in ("stadium", "grandstand")
+        or str(building.get("building_part") or "").lower() == "grandstand"
+    ]
 
     scene = {
         "center": {"lat": lat, "lon": lon, "label": label},
@@ -1376,6 +2030,38 @@ def main():
         "profile": profile,
         "profile_defaults": profile_defaults,
         "scene_kind": scene_kind,
+        "specializations": specializations,
+        "stadium_profile": {
+            "detected": scene_kind in ("football_stadium", "stadium"),
+            "football": scene_kind == "football_stadium",
+            "pitch_count": len(football_pitches),
+            "stadium_building_count": len(stadium_buildings),
+            "source": "osm_tags",
+        },
+        "hospital_profile": {
+            "detected": "hospital" in specializations,
+            "building_count": sum(
+                1 for building in buildings
+                if "hospital" in str(building.get("type", "")).lower()
+                or "hospital" in str(building.get("building_use", "")).lower()
+                or "clinic" in str(building.get("building_use", "")).lower()),
+            "source": "osm_tags",
+        },
+        "highway_profile": {
+            "detected": "highway" in specializations,
+            "carriageway_count": sum(
+                1 for road in roads if road.get("type") in (
+                    "motorway", "motorway_link", "trunk", "trunk_link")),
+            "source": "osm_tags",
+        },
+        "residential_profile": urban_detail.residential_profile({
+            "areas": areas, "buildings": buildings,
+        }),
+        "urban_detail_profile": {
+            "detected": bool(urban_object_count),
+            "family_counts": urban_family_counts,
+            "source": "osm_tags",
+        },
         "buildings": buildings,
         "roads": roads,
         "areas": areas,
@@ -1390,6 +2076,15 @@ def main():
             "streetview_outdoor": bool(streetview),
             "satellite_reference": bool(satellite_reference),
             "special_feature_count": len(special_features),
+            "covered_structure_count": covered_structure_count,
+            "urban_object_count": urban_object_count,
+            "urban_family_counts": urban_family_counts,
+            "football_pitch_count": len(football_pitches),
+            "stadium_building_count": len(stadium_buildings),
+            "hospital_detected": "hospital" in specializations,
+            "highway_carriageway_count": sum(
+                1 for road in roads if road.get("type") in (
+                    "motorway", "motorway_link", "trunk", "trunk_link")),
         },
         "sources": ["OpenStreetMap", "Google references" if api_key else "OpenStreetMap only"],
     }

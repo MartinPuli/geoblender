@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architectural Building to 3D"
+  short_description: "Varied buildings with editable inferred interiors"
+  default_prompt: "Use $architectural-building-to-3d to construct varied buildings with semantic facades, symmetric openings, visible room depth, and toggleable editable interior layouts."

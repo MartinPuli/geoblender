@@ -1,0 +1,4 @@
+interface:
+  display_name: "Highway to 3D"
+  short_description: "Detailed editable highways bridges and interchanges"
+  default_prompt: "Use $highway-to-3d to construct this highway with lane-aware pavement, markings, shoulders, barriers, bridge structure, and held-out validation."

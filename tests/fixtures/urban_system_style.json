@@ -1,0 +1,308 @@
+{
+  "focus": {"point": [0, 5], "span": 210},
+  "editable_radius": 150,
+  "merge_distant_buildings": false,
+  "urban_objects": {
+    "enabled": true,
+    "geometry_radius": 180,
+    "max_objects": 200,
+    "object_segments": 10,
+    "tree_segments": 12,
+    "render_text": true
+  },
+  "streetscape": {
+    "enabled": true,
+    "driving_side": "right",
+    "lane_arrow_length": 3.1,
+    "lane_arrow_width": 0.20,
+    "utility_wire_width": 0.045,
+    "telecom_wire_width": 0.035,
+    "cycle_lane_width": 1.6,
+    "cycle_protection_spacing": 7.0
+  },
+  "vegetation_areas": {
+    "enabled": true,
+    "geometry_radius": 190,
+    "max_instances": 120,
+    "max_instances_per_area": 24,
+    "woodland_m2_per_tree": 100,
+    "orchard_m2_per_tree": 125,
+    "scrub_m2_per_shrub": 80
+  },
+  "facade": {
+    "geometry_enabled": true,
+    "geometry_radius": 145,
+    "max_windows_per_building": 100,
+    "frame_enabled": true
+  },
+  "architectural_detail": {
+    "visible_interiors": true,
+    "editable_interior_layouts": false,
+    "balconies": true,
+    "max_balconies_per_building": 16
+  },
+  "camera": {
+    "azimuth_deg": 228,
+    "elev_deg": 31,
+    "margin": 1.45,
+    "aerial_height_factor": 1.75,
+    "holdout_azimuth_offset_deg": 112,
+    "holdout_elev_deg": 27
+  },
+  "detail_views": [
+    {
+      "name": "street_system",
+      "point": [0, -4],
+      "span": 34,
+      "azimuth_deg": 12,
+      "elev_deg": 18,
+      "margin": 1.05,
+      "lens": 62,
+      "target_z": 1.8
+    },
+    {
+      "name": "public_space",
+      "point": [2, 49],
+      "span": 52,
+      "azimuth_deg": 220,
+      "elev_deg": 23,
+      "margin": 1.18,
+      "lens": 55,
+      "target_z": 2.8
+    },
+    {
+      "name": "signage_face",
+      "point": [-8, -8],
+      "span": 12,
+      "azimuth_deg": 0,
+      "elev_deg": 12,
+      "margin": 1.08,
+      "lens": 68,
+      "target_z": 1.5
+    },
+    {
+      "name": "transit_stop",
+      "point": [24, -8],
+      "span": 16,
+      "azimuth_deg": 0,
+      "elev_deg": 14,
+      "margin": 1.1,
+      "lens": 62,
+      "target_z": 1.5
+    },
+    {
+      "name": "wall_art",
+      "point": [49, 50],
+      "span": 18,
+      "azimuth_deg": 180,
+      "elev_deg": 12,
+      "margin": 1.05,
+      "lens": 62,
+      "target_z": 4.0
+    },
+    {
+      "name": "regulatory_signs",
+      "point": [-54, -12],
+      "span": 42,
+      "azimuth_deg": 42,
+      "elev_deg": 14,
+      "margin": 1.08,
+      "lens": 60,
+      "target_z": 1.5
+    },
+    {
+      "name": "pedestrian_crossing",
+      "point": [45, 0],
+      "span": 18,
+      "azimuth_deg": 225,
+      "elev_deg": 34,
+      "margin": 1.08,
+      "lens": 58,
+      "target_z": 0.25
+    },
+    {
+      "name": "smart_utilities",
+      "point": [60, -20],
+      "span": 36,
+      "azimuth_deg": 42,
+      "elev_deg": 24,
+      "margin": 1.08,
+      "lens": 60,
+      "target_z": 1.1
+    },
+    {
+      "name": "fitness_station",
+      "point": [5, 32],
+      "span": 14,
+      "azimuth_deg": 225,
+      "elev_deg": 20,
+      "margin": 1.08,
+      "lens": 62,
+      "target_z": 1.2
+    },
+    {
+      "name": "lane_arrows",
+      "point": [18, 0],
+      "span": 24,
+      "azimuth_deg": 230,
+      "elev_deg": 38,
+      "margin": 1.05,
+      "lens": 58,
+      "target_z": 0.15
+    },
+    {
+      "name": "traffic_islands",
+      "point": [-29, 0],
+      "span": 27,
+      "azimuth_deg": 220,
+      "elev_deg": 33,
+      "margin": 1.05,
+      "lens": 58,
+      "target_z": 0.3
+    },
+    {
+      "name": "vegetation_cover",
+      "point": [-93, 43],
+      "span": 52,
+      "azimuth_deg": 226,
+      "elev_deg": 35,
+      "margin": 1.08,
+      "lens": 54,
+      "target_z": 3.4
+    },
+    {
+      "name": "overhead_utilities",
+      "point": [0, 84],
+      "span": 115,
+      "azimuth_deg": 205,
+      "elev_deg": 18,
+      "margin": 1.05,
+      "lens": 58,
+      "target_z": 6.0
+    },
+    {
+      "name": "surface_markings",
+      "point": [26, 0],
+      "span": 38,
+      "azimuth_deg": 228,
+      "elev_deg": 42,
+      "margin": 1.03,
+      "lens": 62,
+      "target_z": 0.12
+    },
+    {
+      "name": "cycle_lane",
+      "point": [72, -2.5],
+      "span": 42,
+      "azimuth_deg": 238,
+      "elev_deg": 34,
+      "margin": 1.04,
+      "lens": 60,
+      "target_z": 0.2
+    },
+    {
+      "name": "substation",
+      "point": [89, 45],
+      "span": 34,
+      "azimuth_deg": 120,
+      "elev_deg": 43,
+      "margin": 1.05,
+      "lens": 58,
+      "target_z": 1.0
+    },
+    {
+      "name": "telecom_network",
+      "point": [-5, -71],
+      "span": 125,
+      "azimuth_deg": 205,
+      "elev_deg": 17,
+      "margin": 1.02,
+      "lens": 58,
+      "target_z": 4.0
+    },
+    {
+      "name": "telecom_cabinet",
+      "point": [-66, -68],
+      "span": 20,
+      "azimuth_deg": 25,
+      "elev_deg": 20,
+      "margin": 1.04,
+      "lens": 62,
+      "target_z": 1.4
+    },
+    {
+      "name": "bus_parking",
+      "point": [55, 0],
+      "span": 58,
+      "azimuth_deg": 232,
+      "elev_deg": 34,
+      "margin": 1.04,
+      "lens": 60,
+      "target_z": 0.25
+    },
+    {
+      "name": "fluid_network",
+      "point": [106, 4],
+      "span": 54,
+      "azimuth_deg": 0,
+      "elev_deg": 17,
+      "margin": 1.04,
+      "lens": 60,
+      "target_z": 2.5
+    },
+    {
+      "name": "street_drainage",
+      "point": [15, 0],
+      "span": 15,
+      "azimuth_deg": 228,
+      "elev_deg": 45,
+      "margin": 1.03,
+      "lens": 64,
+      "target_z": 0.15
+    },
+    {
+      "name": "accessible_crossing",
+      "point": [45, 0],
+      "span": 18,
+      "azimuth_deg": 232,
+      "elev_deg": 38,
+      "margin": 1.04,
+      "lens": 62,
+      "target_z": 0.18
+    },
+    {
+      "name": "raised_crossing",
+      "point": [0, -20],
+      "span": 18,
+      "azimuth_deg": 220,
+      "elev_deg": 16,
+      "margin": 1.04,
+      "lens": 62,
+      "target_z": 0.25
+    },
+    {
+      "name": "vertical_access",
+      "point": [-70, -14],
+      "span": 28,
+      "azimuth_deg": 220,
+      "elev_deg": 28,
+      "margin": 1.04,
+      "lens": 60,
+      "target_z": 1.1
+    },
+    {
+      "name": "elevator_access",
+      "point": [90, -10],
+      "span": 22,
+      "azimuth_deg": 40,
+      "elev_deg": 28,
+      "margin": 1.04,
+      "lens": 62,
+      "target_z": 1.1
+    }
+  ],
+  "sun": {"energy": 3.2, "angle_deg": 18, "rot_deg": [50, 5, 32]},
+  "sky": [0.60, 0.73, 0.87, 1.15],
+  "samples": 48,
+  "resolution": [1400, 980]
+}

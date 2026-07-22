@@ -43,6 +43,11 @@ Legend: ✅ implemented (default) · 🟡 partial · 📋 recommended / roadmap.
   descending to the pitch instead of a hollow box. (`stadium_interior`)
 - 🟡 **Airport / port / rail** — `special_features` carry runways, taxiways,
   aprons, helipads as semantic infrastructure.
+- ✅ **Residential zones and boundaries** — land use remains separate from
+  mapped buildings; fences, walls and hedges retain their physical geometry.
+- ✅ **Urban objects** — explicit signage, advertising, transit-stop components,
+  memorial/public-art types, street amenities and playground equipment route to
+  distinct editable grammars with dimensions/direction provenance.
 
 ## Terrain
 - ✅ **DEM / SRTM elevation.** `place_to_3d --terrain` fetches a real elevation

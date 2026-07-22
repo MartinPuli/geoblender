@@ -1,0 +1,4 @@
+interface:
+  display_name: "Monuments and Public Art to 3D"
+  short_description: "Build statues, memorials, art, and fountains"
+  default_prompt: "Use $monuments-public-art-to-3d to construct mapped monuments and public art as editable Blender objects."

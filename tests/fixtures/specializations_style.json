@@ -1,0 +1,37 @@
+{
+  "samples": 4,
+  "resolution": [1280, 800],
+  "editable_radius": 260,
+  "merge_distant_buildings": false,
+  "facade": {
+    "geometry_radius": 230,
+    "max_windows_per_building": 190,
+    "geometry_depth": 0.12,
+    "frame_width": 0.10,
+    "frame_depth": 0.15
+  },
+  "architectural_detail": {
+    "interior_radius": 230,
+    "max_interior_bays_per_building": 170,
+    "max_balconies_per_building": 28,
+    "lit_ratio": 0.42
+  },
+  "hospital": {
+    "geometry_radius": 260,
+    "helipad": "auto",
+    "helipad_min_area": 1200
+  },
+  "highway": {
+    "max_gantries": 4,
+    "guardrails": true,
+    "bridge_piers": true
+  },
+  "camera": {
+    "azimuth_deg": 225,
+    "elev_deg": 31,
+    "margin": 1.5,
+    "aerial_height_factor": 2.0,
+    "holdout_azimuth_offset_deg": 105,
+    "holdout_elev_deg": 27
+  }
+}

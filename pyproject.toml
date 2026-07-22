@@ -16,11 +16,20 @@ yaml = ["PyYAML"]
 
 [project.scripts]
 place2blender = "place_to_3d:main"
+maps-to-3d = "blocks_pipeline:main"
 
 [tool.setuptools]
 package-dir = { "" = "scripts" }
 py-modules = [
     "place_to_3d",
+    "blocks_pipeline",
+    "blocks_build",
+    "blocks_eval",
+    "architectural_detail",
+    "hospital_detail",
+    "highway_detail",
+    "stadium_detail",
+    "urban_detail",
     "blender_build",
     "world_scene",
     "citycamera",

@@ -1,0 +1,55 @@
+{
+  "center": {"lat": 0.0, "lon": 0.0, "label": "synthetic-football-stadium"},
+  "radius": 180,
+  "bounds": {"minx": -150, "miny": -120, "maxx": 150, "maxy": 120},
+  "scene_kind": "football_stadium",
+  "stadium_profile": {
+    "detected": true,
+    "football": true,
+    "pitch_count": 1,
+    "stadium_building_count": 1,
+    "source": "synthetic_osm_tags"
+  },
+  "buildings": [
+    {
+      "osm_id": 9001,
+      "footprint": [[-86, -68], [86, -68], [86, 68], [-86, 68], [-86, -68]],
+      "height": 18.0,
+      "min_height": 0.0,
+      "height_source": "explicit",
+      "type": "stadium",
+      "structure_mode": "enclosed",
+      "color": [0.42, 0.44, 0.45],
+      "color_source": "semantic_prior",
+      "color_confidence": 0.4,
+      "source": "osm"
+    }
+  ],
+  "roads": [
+    {"path": [[-145, -96], [145, -96]], "width": 8.0, "type": "secondary", "z": 0.06},
+    {"path": [[-118, -115], [-118, 105]], "width": 5.5, "type": "residential", "z": 0.06}
+  ],
+  "areas": [
+    {
+      "osm_id": 8001,
+      "polygon": [[-100, -82], [100, -82], [100, 82], [-100, 82], [-100, -82]],
+      "z": 0.025,
+      "color": [0.30, 0.32, 0.34],
+      "type": "stadium",
+      "sport": "soccer",
+      "source": "osm"
+    },
+    {
+      "osm_id": 8002,
+      "polygon": [[-52.5, -34], [52.5, -34], [52.5, 34], [-52.5, 34], [-52.5, -34]],
+      "z": 0.03,
+      "color": [0.10, 0.40, 0.12],
+      "type": "pitch",
+      "sport": "soccer",
+      "surface": "grass",
+      "source": "osm"
+    }
+  ],
+  "special_features": [],
+  "sources": ["synthetic-test"]
+}

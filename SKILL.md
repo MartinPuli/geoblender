@@ -1,6 +1,6 @@
 ---
 name: geoblender
-description: Constructs and refines an editable block-based Blender scene from an address, coordinates, Google Maps link, or place name. Uses normalized OpenStreetMap geometry and source-aware building appearance, then evaluates silhouette, facade structure, and color on tuning and held-out views. Use when the user wants to reconstruct, inspect, measure, detail, or render a real place in 3D through Blender or blender-mcp. This skill never uses Google Photorealistic 3D Tiles, screenshots, image planes, or provider imagery as construction geometry.
+description: Constructs and refines an editable block-based Blender scene from an address, coordinates, Google Maps link, or place name. Uses normalized OpenStreetMap geometry for source-aware buildings, residential zones, roads, terrain, vegetation, signage, transit details, monuments, public art, playgrounds, amenities, streetscape infrastructure, and covered structures, then routes difficult semantic features to architectural, stadium, hospital, highway, residential-neighborhood, signage-wayfinding, monuments-public-art, urban-amenities, or streetscape-infrastructure specializations, and evaluates silhouette, facade structure, and color on tuning and held-out views. Use when the user wants to reconstruct, inspect, measure, detail, or render a real place in 3D through Blender or blender-mcp. This skill never uses Google Photorealistic 3D Tiles, screenshots, image planes, or provider imagery as construction geometry.
 ---
 
 # GeoBlender
@@ -23,6 +23,27 @@ photogrammetry import, screenshot, image plane, or texture projection.
 - Use the more detailed procedural OSM renderer only when the user explicitly
   asks for it after the block deliverable exists.
 - Use `blender-mcp-loop` when the work must happen inside a live Blender session.
+- Load and follow `football-stadium-to-3d` when the user explicitly requests a
+  football stadium or normalized data reports `scene_kind=football_stadium` or
+  `stadium_profile.football=true`. Do not accept the generic bowl as completion.
+- Load `architectural-building-to-3d` whenever buildings are present or the
+  user asks for facade variety, symmetry, windows, balconies, or interiors.
+- Load `hospital-to-3d` for hospital/clinic semantics or `scene_kind=hospital`.
+  Use it alongside the architectural specialization rather than replacing it.
+- Load `highway-to-3d` for motorway/trunk/link semantics or
+  `scene_kind=highway`. Ordinary streets stay in the generic road builder.
+- Load `residential-neighborhood-to-3d` for `landuse=residential`, residential
+  building districts, housing estates, subdivisions or neighborhood detail.
+- Load `signage-wayfinding-to-3d` for traffic signs, information/guideposts,
+  public-transport stops, advertising boards, billboards, columns or flags.
+- Load `monuments-public-art-to-3d` for memorials, monuments, statues, busts,
+  sculptures, murals, installations, obelisks or fountains.
+- Load `urban-amenities-to-3d` for mapped street furniture, utilities,
+  vegetation, shelters and playground equipment.
+- Load `streetscape-infrastructure-to-3d` for lane arrows, explicit road
+  markings, on-road cycle lanes/protection, kerbs/islands, vegetation-cover
+  areas/tree rows, substations/transformers, poles/cabinets, power lines and
+  explicitly overhead communication lines.
 
 If the request simply says “build it,” construct the editable block scene. Never
 infer permission to substitute a photogrammetric render because it looks closer.
@@ -56,6 +77,21 @@ Concrete OSM categories such as `aeroway=runway`, `building=grandstand`, or
 3. Create a new `output/<slug>` directory. Never write run-specific tuning into
    `scripts/`.
 4. Record sources and attribution. Never print or persist API keys.
+
+## Preferred one-command workflow
+
+Use the safe wrapper for normal runs. It normalizes OSM, constructs editable
+blocks, renders oblique/aerial/holdout views, and evaluates the artifacts:
+
+```bash
+python3 scripts/blocks_pipeline.py "<place>" --radius <meters> \
+  --out output/<slug> --terrain
+```
+
+Pass `--no-references` when optional Google comparison references are unwanted,
+`--style output/<slug>/style.json` for run-specific choices, or `--scene
+output/<slug>/scene.json` to rebuild without downloading data. Use the separate
+commands below only for inspection, debugging, or live-Blender iteration.
 
 ## Acquire normalized OSM data
 
@@ -116,11 +152,22 @@ rather than a field of identical default boxes:
   outrank material/semantic priors; aerial sampling fills `roof_color` only.
   Convert display-sRGB inputs to scene-linear values before feeding Principled
   BSDF and retain source plus confidence independently for facade and roof.
-- **Stadium interior.** A `building=stadium`/`grandstand` footprint is built
-  with a real interior — an outer wall plus concentric seating tiers that rake
-  down toward the pitch — instead of a hollow flat-topped box. This is
-  tag-driven reusable geometry; `stadium_interior.seat_color`/`wall_color` are
-  optional per-run overrides. The tiers are inferred seating, not surveyed.
+- **Stadium routing.** Football stadiums use `football-stadium-to-3d` and the
+  scene-level `stadium_detail` builder: mapped pitch orientation, four stands,
+  modular seating, aisles, vomitories, open rear structure, roofs, goals, access,
+  and lighting. Keep `stadium_interior` only as a fallback for non-football
+  arenas or incomplete generic stadium data.
+- **Architectural routing.** Buildings use `architectural-building-to-3d` and
+  `architectural_detail.py` for semantic profiles, deterministic variants,
+  centered/symmetric opening arrays, recessed glass, mullions, balconies and
+  shallow visible room depth, plus toggleable inferred floor plates, corridors,
+  partitions and cores. Preserve mapped massing and label inferred rooms.
+- **Hospital routing.** Hospital and clinic semantics use `hospital-to-3d` and
+  `hospital_detail.py` for public canopy, emergency bay, medical signage,
+  ambulance markings, rooftop plant and evidence-bounded helipads.
+- **Highway routing.** Motorway/trunk carriageways and links use
+  `highway-to-3d` and `highway_detail.py` for lanes, shoulders, markings,
+  guardrails, median barriers, bridge piers and bounded sign gantries.
 - **Roof shapes.** `roof:shape` (gabled, hipped, pyramidal, dome, skillion, …)
   is built as a real pitched roof — non-rectangular plans use the footprint's
   principal axis as an oriented-bounding-box ridge, as in blender-osm/OSM2World.
@@ -133,12 +180,51 @@ rather than a field of identical default boxes:
 - **Facade grammar.** Derive floor height, bay width, opening ratios, and PBR
   roughness from `building:levels`, height, building/use class, and material.
   Align the shader grid to each face tangent and mask horizontal roof faces.
-  Add bounded editable window panels only inside `facade.geometry_radius`;
-  merged/distant buildings keep the shader or flat LOD.
+  Add bounded editable window panels with recessed glass and four-piece frames
+  only inside `facade.geometry_radius`; merged/distant buildings keep the shader
+  or flat LOD.
 - **Construction-detail LOD.** Inside `construction_detail.geometry_radius`,
   add bounded inferred plinths, floor strings, cornices, and one entrance on
   the grounded detail anchor. Keep these layers identity-free, cap them per
   building, label them inferred, and never let them change source massing.
+- **Open covered structures.** Render `building=roof`, `building:part=roof`,
+  canopies, carports, shelters, and non-building `covered=yes` polygons as thin
+  roof decks with open clearance, perimeter beams, and bounded supports. Never
+  turn a mapped open cover into an enclosed solid. Keep roof/support objects in
+  `BLK_COVERED_STRUCTURES` and report inferred clearance/support geometry.
+- **Urban objects.** Convert explicit OSM trees, benches, street lamps, waste
+  baskets, drinking water, bicycle parking, shelters, bollards, and gates into
+  semantic low-poly objects inside `urban_objects.geometry_radius`. Keep them
+  in `BLK_URBAN_OBJECTS`, cap their count, and never scatter unmapped objects as
+  though they were observed.
+- **Residential routing.** Preserve `landuse=residential` as zone evidence,
+  optional `residential=*` as a zone subtype, mapped gardens, driveways and
+  barriers, then combine neighborhood structure with architectural building
+  grammars. Never reinterpret a residential zone boundary as cadastral parcels.
+- **Signage routing.** Build physical sign supports, plates and explicit text for
+  mapped traffic-sign nodes, information/guideposts, transit stops and
+  advertising devices. Preserve `direction`, `size`, `support`, `sides` and
+  lighting tags; never invent physical signs from a road-wide regulation. Use
+  semantic octagon/triangle/circle/diamond proxies for known human-readable
+  regulatory values and preserve unknown national codes without guessing glyphs.
+- **Crossing routing.** Host `highway=crossing` paint to the nearest mapped road
+  axis/width, preserve `crossing:markings=*`, and add tactile pads only from
+  explicit `tactile_paving=yes`. Unmarked crossings remain unpainted.
+- **Streetscape routing.** Preserve `turn:lanes*` direction/lane order and add
+  generic editable arrows only from those explicit tags. Build mapped kerb axes,
+  raised/painted/refuge islands, tree rows, bounded deterministic forest/orchard/
+  scrub instances and overhead power conductors from their mapped axes. Keep
+  ambiguous two-way arrows and all area instances labeled as inference; never
+  connect unrelated poles or expose underground cables overhead.
+- **Public-art routing.** Build semantic editable fallbacks for statues, busts,
+  steles, plaques, stones, obelisks, monuments, sculptures, installations,
+  murals and fountains. Report symbolic massing separately from verified or
+  licensed identity geometry.
+- **Amenity routing.** Build distinctive grammars for hydrants, post boxes,
+  phones, clocks, cabinets, parking meters, charging stations, vending
+  machines, parcel lockers, ATMs, defibrillators, fitness stations, picnic
+  tables, recycling and mapped playground equipment alongside the existing
+  furniture/vegetation set.
 
 See `docs/REALWORLD_TECHNIQUES.md` for the full survey of real-place-to-Blender
 techniques (with sources) and what is implemented versus on the roadmap
@@ -158,6 +244,10 @@ blender -b output/<slug>/<slug>_blocks.blend \
 
 The evaluator writes `eval_report.json`. Fix the highest-impact failed gate,
 rebuild, and evaluate again. Never relax the objective merely to pass.
+For relevant scenes, use run-specific gates such as `min_covered_structures`,
+`min_cover_columns`, `min_urban_objects`, `required_urban_object_kinds`, and
+`min_urban_wall_hosted`, `min_residential_boundary_segments`, and
+`min_facade_window_frame_parts`.
 
 ## Reference-only sources
 
@@ -195,6 +285,16 @@ No single-view improvement may be promoted to the core if holdout quality falls.
 ## Resources
 
 - `scripts/place_to_3d.py`: place to `scene.json` and available references.
+- `scripts/blocks_pipeline.py`: preferred one-command acquire/build/render/eval flow.
+- `scripts/stadium_detail.py`: detailed football-stadium specialization used
+  automatically by `football-stadium-to-3d`.
+- `scripts/architectural_detail.py`: semantic building profiles and variants
+  used automatically by `architectural-building-to-3d`.
+- `scripts/hospital_detail.py`: hospital access, signage and roof specialization.
+- `scripts/highway_detail.py`: lane-aware motorway, ramp and bridge specialization.
+- `scripts/urban_detail.py`: shared residential/signage/public-art/amenity/
+  streetscape taxonomy, deterministic sampling, dimension defaults and
+  provenance-aware normalized object specs.
 - `scripts/world_scene.py`: optional detailed procedural OSM build and export.
 - `scripts/blender_build.py`: OSM geometry and materials.
 - `scripts/blocks_build.py`: editable block presentation.

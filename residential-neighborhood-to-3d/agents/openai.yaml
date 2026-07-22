@@ -1,0 +1,4 @@
+interface:
+  display_name: "Residential Neighborhood to 3D"
+  short_description: "Build detailed editable residential districts"
+  default_prompt: "Use $residential-neighborhood-to-3d to construct a detailed editable residential neighborhood in Blender."

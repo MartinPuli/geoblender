@@ -1,0 +1,15 @@
+{
+  "gates": {
+    "min_objects": 20,
+    "required_files": ["blocks_oblique.png", "blocks_aerial.png", "blocks_holdout.png"],
+    "max_black_pct": 1.0,
+    "min_individual_buildings": 3,
+    "min_facade_window_frame_parts": 500,
+    "min_covered_structures": 3,
+    "min_cover_columns": 8,
+    "min_cover_edge_beams": 4,
+    "min_urban_objects": 7,
+    "min_urban_object_parts": 20,
+    "required_urban_object_kinds": ["tree", "bench", "street_lamp", "bicycle_parking", "shelter", "bollard"]
+  }
+}

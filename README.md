@@ -77,6 +77,40 @@ construction LOD adds plinths, floor strings, cornices, entrances, and editable
 window panels. These details are reported as inferred and never presented as
 surveyed architecture.
 
+Open covered footprints remain open: roofs, canopies, carports, and shelters use
+thin decks, perimeter beams, and editable supports instead of false solid walls.
+Explicit OSM trees and street furniture become semantic low-poly objects. Window
+panels now include recessed glass, editable frames, profile-specific mullions,
+room-depth backings and deterministic lighting within a bounded detail LOD.
+Nearby buildings also receive toggleable inferred floor plates, corridors, room
+partitions and service cores in `BLK_BUILDING_INTERIORS`; these are editable
+planning scaffolds, never claimed as surveyed plans.
+
+Football stadiums are routed to the `football-stadium-to-3d` specialization.
+Instead of a generic bowl, it constructs the mapped pitch, four stands, thousands
+of bounded seat modules, aisles, vomitories, rear structural frames, roofs, goals,
+dugouts, tunnel, scoreboard, fencing, and floodlights.
+
+Hospitals and clinics route to `hospital-to-3d`, adding public and emergency
+access, medical signage, ambulance markings, roof plant and evidence-bounded
+helipads while retaining mapped wings. Motorways, trunk roads, ramps and bridges
+route to `highway-to-3d`, adding lane-aware pavement, shoulders, markings,
+guardrails, piers and bounded gantries. General buildings route through
+`architectural-building-to-3d`, so houses, residences, hotels, schools, offices,
+curtain walls, civic buildings, hospitals and warehouses do not share one facade.
+
+Residential neighborhoods, physical signage, advertising, transit stops,
+memorials/public art, street amenities and playground equipment have dedicated
+tag-driven specializations. Explicit size, direction and text are preserved;
+bus-stop shelters, benches, bins and displays are built only when mapped. See
+[Urban-detail system](docs/URBAN_SYSTEM.md) for the coverage and evidence rules.
+Detailed streetscapes additionally preserve explicit turn-lane arrows, mapped
+road markings, on-road cycle lanes/protection, kerbs/islands, tree rows and
+vegetation-cover areas, plus substations, transformers, power and explicit
+overhead telecom axes, in separate editable collections with independent
+acceptance metrics. Underground or location-unknown communication lines stay
+metadata-only rather than becoming floating cables.
+
 ## Compliance
 
 - **Google 3D Tiles are outside the normal skill workflow.** The repository keeps
@@ -97,12 +131,11 @@ source and license inventory.
 python3 -m pip install requests
 export GOOGLE_MAPS_API_KEY="your_key"          # optional references only
 
-# Normalize construction data
-python3 scripts/place_to_3d.py "<place>" --radius 350 --no-render --out output/<place>
+# Preferred: normalize, build, render three views, and evaluate
+python3 scripts/blocks_pipeline.py "<place>" --radius 350 --out output/<place> --terrain
 
-# Construct and evaluate the editable block model
-blender -b -P scripts/blocks_build.py -- output/<place>/scene.json output/<place> <place> --render
-blender -b output/<place>/<place>_blocks.blend -P scripts/blocks_eval.py -- output/<place>
+# Rebuild an existing normalized scene without downloading again
+python3 scripts/blocks_pipeline.py --scene output/<place>/scene.json --style output/<place>/style.json
 ```
 
 For a live Blender session, install and connect the upstream
@@ -119,6 +152,7 @@ Blender 5.x is recommended. The smoke test is run against the installed
 ```bash
 python3 -m pip install -e .
 place2blender "<place>" --radius 350 --no-render
+maps-to-3d "<place>" --radius 350 --terrain
 python3 -m pytest tests/ -q
 ```
 
@@ -242,7 +276,12 @@ See [the full evaluation protocol](EVALUATION.md) and
 - Source-aware facade/roof colors: explicit OSM values outrank material and
   semantic priors; aerial samples populate roof color without repainting walls.
 - Tag-driven facade grammar with face-aligned shader windows and bounded
-  near-field editable window geometry.
+  near-field editable window geometry, semantic profiles, symmetric bay pairs,
+  mullions, balconies, facade accents and visible interior depth.
+- Toggleable inferred interior layouts with floor slabs, corridors, partitions
+  and service cores, bounded by radius/floor/partition caps.
+- Automatic hospital and highway specialization alongside the football-stadium
+  specialization, each with independent geometry reports and evaluation gates.
 - Bounded construction-detail grammar with plinths, floor strings, cornices,
   and one grounded entrance anchor; all procedural layers retain inferred
   provenance and disappear outside the configured LOD radius.

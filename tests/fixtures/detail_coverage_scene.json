@@ -1,0 +1,86 @@
+{
+  "center": {"lat": 0.0, "lon": 0.0, "label": "synthetic-detail-coverage"},
+  "radius": 75,
+  "bounds": {"minx": -60, "miny": -50, "maxx": 60, "maxy": 50},
+  "buildings": [
+    {
+      "osm_id": 101,
+      "footprint": [[-6, -8], [18, -8], [18, 14], [-6, 14], [-6, -8]],
+      "height": 16.0,
+      "min_height": 0.0,
+      "height_source": "levels",
+      "levels": 5,
+      "type": "apartments",
+      "structure_mode": "enclosed",
+      "building_material": "brick",
+      "color": [0.68, 0.42, 0.28],
+      "color_source": "material_prior",
+      "color_confidence": 0.6,
+      "roof_shape": "flat",
+      "source": "osm"
+    },
+    {
+      "osm_id": 102,
+      "footprint": [[22, 2], [42, 2], [42, 22], [22, 22], [22, 2]],
+      "height": 12.0,
+      "min_height": 0.0,
+      "height_source": "explicit",
+      "levels": 4,
+      "type": "office",
+      "structure_mode": "enclosed",
+      "building_material": "glass",
+      "color": [0.34, 0.50, 0.62],
+      "color_source": "material_prior",
+      "color_confidence": 0.6,
+      "roof_shape": "skillion",
+      "roof_height": 1.4,
+      "source": "osm"
+    },
+    {
+      "osm_id": 103,
+      "footprint": [[-42, -18], [-16, -18], [-16, -3], [-42, -3], [-42, -18]],
+      "height": 3.55,
+      "min_height": 3.2,
+      "height_source": "inferred_clearance",
+      "type": "roof",
+      "structure_mode": "roof_only",
+      "covered": true,
+      "color": [0.58, 0.60, 0.62],
+      "color_source": "semantic_prior",
+      "color_confidence": 0.4,
+      "roof_color": [0.30, 0.34, 0.38],
+      "roof_color_source": "material_prior",
+      "roof_color_confidence": 0.6,
+      "source": "osm"
+    }
+  ],
+  "roads": [
+    {"path": [[-60, -28], [60, -28]], "width": 7.0, "type": "residential", "z": 0.06},
+    {"path": [[0, -50], [0, 50]], "width": 2.0, "type": "footway", "z": 0.07}
+  ],
+  "areas": [
+    {"polygon": [[-55, 25], [-15, 25], [-15, 47], [-55, 47], [-55, 25]], "z": 0.03, "type": "park", "color": [0.30, 0.50, 0.25]}
+  ],
+  "special_features": [
+    {
+      "osm_id": 201,
+      "geometry": "surface",
+      "family": "covered_structure",
+      "kind": "shelter",
+      "structure_mode": "roof_only",
+      "polygon": [[18, -23], [39, -23], [39, -13], [18, -13], [18, -23]],
+      "height": 3.25,
+      "min_height": 2.95,
+      "height_source": "inferred_clearance",
+      "source": "osm"
+    },
+    {"osm_id": 301, "geometry": "point", "family": "vegetation", "kind": "tree", "point": [-45, 34], "height": 9.0, "width": 5.5, "source": "osm"},
+    {"osm_id": 302, "geometry": "point", "family": "vegetation", "kind": "tree", "point": [-30, 36], "height": 7.5, "width": 4.8, "source": "osm"},
+    {"osm_id": 303, "geometry": "point", "family": "street_furniture", "kind": "bench", "point": [-23, 28], "height": 0.85, "width": 1.8, "direction": 90, "source": "osm"},
+    {"osm_id": 304, "geometry": "point", "family": "street_furniture", "kind": "street_lamp", "point": [11, -24], "height": 6.0, "width": 0.18, "direction": 180, "source": "osm"},
+    {"osm_id": 305, "geometry": "point", "family": "street_furniture", "kind": "bicycle_parking", "point": [8, -15], "height": 1.0, "width": 1.5, "direction": 0, "source": "osm"},
+    {"osm_id": 306, "geometry": "point", "family": "covered_structure", "kind": "shelter", "point": [48, -18], "height": 2.7, "width": 3.2, "direction": 90, "source": "osm"},
+    {"osm_id": 307, "geometry": "point", "family": "street_furniture", "kind": "bollard", "point": [-4, -25], "height": 0.9, "width": 0.18, "source": "osm"}
+  ],
+  "sources": ["synthetic-test"]
+}

@@ -119,6 +119,9 @@ def block_build_payload(scene_path, out_dir=None, slug=None, style_path=None,
         "import os, sys, json, importlib",
         "os.makedirs(%s, exist_ok=True)" % _lit(out_dir),
         "sys.path.insert(0, %s)" % _lit(sp),
+        "import architectural_detail, highway_detail, hospital_detail, stadium_detail, urban_detail",
+        "for _semantic_module in (architectural_detail, highway_detail, hospital_detail, stadium_detail, urban_detail):",
+        "    importlib.reload(_semantic_module)",
         "import blocks_build",
         "importlib.reload(blocks_build)",
         "_info = blocks_build.build_from_scene(",
@@ -275,6 +278,9 @@ def one_shot_payload(scene_path, out_dir, slug="scene", scripts_dir=None,
     if backup:
         lines.append(backup_payload(backup_path))
     lines += [
+        "import architectural_detail, highway_detail, hospital_detail, stadium_detail, urban_detail",
+        "for _semantic_module in (architectural_detail, highway_detail, hospital_detail, stadium_detail, urban_detail):",
+        "    importlib.reload(_semantic_module)",
         "import blocks_build",
         "importlib.reload(blocks_build)",
         "_info = blocks_build.build_from_scene(",
@@ -294,6 +300,8 @@ def one_shot_payload(scene_path, out_dir, slug="scene", scripts_dir=None,
         render_payload(oblique_path, engine=engine, samples=samples, res=(res[0], int(res[1] * 0.72))),
         "bpy.context.scene.camera = _holdout",
         render_payload(holdout_path, engine=engine, samples=samples, res=(res[0], int(res[1] * 0.72))),
+        "_detail_renders = blocks_build.render_detail_views(%s, filename_prefix=%s, resolution=%s)" % (
+            _lit(out_dir), _lit(slug), repr([int(res[0]), int(res[1] * 0.72)])),
         "bpy.context.scene.camera = _aerial",
         "bpy.context.scene.render.resolution_x = %d" % int(res[0]),
         "bpy.context.scene.render.resolution_y = %d" % int(res[1]),
@@ -303,7 +311,7 @@ def one_shot_payload(scene_path, out_dir, slug="scene", scripts_dir=None,
         "_report = dict(_info)",
         "_report.update({'role': 'editable-block-baseline', 'construction': 'blocks', "
         "'provider_mesh_imported': False, 'blend': %s, 'render': %s, 'oblique': %s, 'holdout': %s, 'engine': bpy.context.scene.render.engine, "
-        "'objects': len(bpy.data.objects), 'materials': len(bpy.data.materials)})" %
+        "'detail_renders': _detail_renders, 'objects': len(bpy.data.objects), 'materials': len(bpy.data.materials)})" %
         (_lit(blend_path), _lit(render_path), _lit(oblique_path), _lit(holdout_path)),
         "with open(%s, 'w', encoding='utf-8') as _f:" % _lit(report_path),
         "    json.dump(_report, _f, indent=2, ensure_ascii=False)",

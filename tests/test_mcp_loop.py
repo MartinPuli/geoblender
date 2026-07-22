@@ -62,6 +62,8 @@ def test_one_shot_payload_is_single_safe_executable(tmp_path):
     assert "blocks_build.build_from_scene" in code
     assert "'construction': 'blocks'" in code
     assert "'provider_mesh_imported': False" in code
+    assert "render_detail_views" in code
+    assert "importlib.reload(_semantic_module)" in code
     assert "fetch_3dtiles" not in code and "import_3dtiles" not in code
     compile(code, "<one_shot_payload>", "exec")
 

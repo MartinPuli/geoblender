@@ -1,0 +1,22 @@
+{
+  "gates": {
+    "min_objects": 20,
+    "required_files": ["blocks_oblique.png", "blocks_aerial.png", "blocks_holdout.png"],
+    "max_black_pct": 1.0,
+    "min_stadium_stand_rows": 50,
+    "min_stadium_stand_sections": 350,
+    "min_stadium_seat_modules": 5000,
+    "min_stadium_aisle_steps": 280,
+    "min_stadium_vomitories": 6,
+    "min_stadium_roof_panels": 2,
+    "min_stadium_roof_supports": 12,
+    "min_stadium_floodlight_towers": 4,
+    "min_stadium_pitch_markings": 70,
+    "min_stadium_goals": 2,
+    "max_stadium_seat_aisle_overlap_cells": 0,
+    "max_stadium_seat_vomitory_overlap_cells": 0,
+    "max_stadium_row_rise": 0.62,
+    "min_stadium_roof_support_seat_clearance": 0.35,
+    "required_stadium_sides": ["north", "south", "east", "west"]
+  }
+}

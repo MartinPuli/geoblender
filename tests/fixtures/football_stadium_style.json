@@ -1,0 +1,22 @@
+{
+  "focus": {"point": [0, 0], "span": 230},
+  "resolution": [1100, 760],
+  "samples": 10,
+  "camera": {
+    "azimuth_deg": 225,
+    "elev_deg": 34,
+    "margin": 1.32,
+    "aerial_height_factor": 1.45,
+    "holdout_azimuth_offset_deg": 105,
+    "holdout_elev_deg": 27
+  },
+  "football_stadium": {
+    "primary_color": [0.08, 0.20, 0.62],
+    "secondary_color": [0.80, 0.10, 0.08],
+    "seat_color": [0.08, 0.20, 0.62],
+    "rows_long": 16,
+    "rows_end": 12,
+    "roof_sides": ["north", "south"],
+    "floodlights": true
+  }
+}

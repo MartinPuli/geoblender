@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hospital to 3D"
+  short_description: "Detailed editable hospitals and medical campuses"
+  default_prompt: "Use $hospital-to-3d to construct this hospital with recognizable wings, entrances, emergency access, rooftop equipment, and held-out validation."

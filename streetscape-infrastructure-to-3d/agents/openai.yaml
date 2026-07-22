@@ -1,0 +1,4 @@
+interface:
+  display_name: "Streetscape Infrastructure to 3D"
+  short_description: "Build evidence-based streets and utility networks"
+  default_prompt: "Use $streetscape-infrastructure-to-3d to add evidence-based markings, cycle lanes, vegetation, substations, power, and telecom infrastructure to this Blender scene."

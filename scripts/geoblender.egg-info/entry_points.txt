@@ -1,0 +1,3 @@
+[console_scripts]
+maps-to-3d = blocks_pipeline:main
+place2blender = place_to_3d:main

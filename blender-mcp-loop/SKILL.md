@@ -1,6 +1,6 @@
 ---
 name: blender-mcp-loop
-description: Constructs and iteratively refines editable block-based real-place scenes inside a live Blender connected through blender-mcp. Use when the user wants to convert a location, coordinates, or Google Maps link into a Blender scene and asks for Blender MCP, autonomous iteration, building/facade detail, color matching, visual comparison, or infrastructure modeling. Builds source-aware meshes and materials from normalized OSM data, then scores tuning and held-out views before accepting controlled corrections. Never substitutes Google Photorealistic 3D Tiles, screenshots, image planes, or provider imagery for constructed geometry.
+description: Constructs and iteratively refines editable block-based real-place scenes inside a live Blender connected through blender-mcp. Use when the user wants to convert a location, coordinates, or Google Maps link into a Blender scene and asks for Blender MCP, autonomous iteration, varied building/facade/interior detail, residential neighborhoods, signage, monuments, public art, amenities, streetscape, vegetation cover, utility networks, color matching, visual comparison, or infrastructure modeling. Builds source-aware meshes and routes semantic families to their specialized skills before scoring tuning and held-out views. Never substitutes Google Photorealistic 3D Tiles, screenshots, image planes, or provider imagery for constructed geometry.
 ---
 
 # Blender MCP loop
@@ -160,8 +160,8 @@ Authorized aerial samples populate roof color only; they never repaint facades.
 Individual buildings use a tag-driven facade grammar. `building:levels`, height,
 type/use, and material determine floor spacing, bay width, opening ratios, and
 surface response. The procedural shader aligns to each face and excludes roofs;
-near-field buildings also receive capped editable window-panel geometry. This
-is a reusable LOD rule, not a building-name exception.
+near-field buildings also receive capped editable window panels, recessed glass,
+and four-piece frames. This is a reusable LOD rule, not a building-name exception.
 
 Honor OSM Simple 3D Buildings before adding inferred detail: render
 `building:part` volumes instead of their containing outline, preserve per-part
@@ -174,6 +174,42 @@ A `building=stadium`/`grandstand` footprint is built with a real interior —
 outer wall plus concentric seating tiers raking down to the pitch
 (`stadium_interior`, tag-driven) — instead of a hollow flat-topped box. The
 tiers are inferred seating; never claim they are surveyed rows.
+
+If the request or normalized scene indicates a football stadium, load
+`football-stadium-to-3d` and build through `scripts/stadium_detail.py`. Require
+the specialized pitch, four stands, seat modules, aisles, vomitories, open rear
+structure, roofs, access, scoreboard, goals, and lighting before evaluating.
+The simple concentric bowl is not an acceptable football-stadium baseline.
+
+When buildings are present, load `architectural-building-to-3d` and require
+semantic facade profiles, deterministic variants, symmetric opening placement,
+recessed framed/mullioned glazing, bounded visible interior depth and toggleable
+inferred floor plates, corridors, partitions and service cores in
+`BLK_BUILDING_INTERIORS`. Load
+`hospital-to-3d` for hospital/clinic semantics and require access, emergency,
+signage and rooftop-service layers. Load `highway-to-3d` for motorway/trunk
+semantics and require lane-aware decks, markings, guardrails, bridge support and
+bounded gantries. Keep all procedural additions editable and labeled inferred.
+
+Load `residential-neighborhood-to-3d` for residential zones/districts,
+`signage-wayfinding-to-3d` for physical signs, transit stops and advertising,
+`monuments-public-art-to-3d` for memorials/art/fountains, and
+`urban-amenities-to-3d` for mapped furniture, utilities and playground
+equipment. Load `streetscape-infrastructure-to-3d` for explicit lane arrows,
+kerbs/islands, tree rows/vegetation-cover areas and overhead power lines.
+Require `BLK_RESIDENTIAL_ZONES`, `BLK_SIGNAGE`, `BLK_TRANSIT_DETAILS`,
+`BLK_MONUMENTS_PUBLIC_ART`, `BLK_RECREATION`, `BLK_ROAD_SURFACE_DETAILS`,
+`BLK_VEGETATION_AREAS` and `BLK_UTILITY_NETWORKS` only when their normalized
+families are present; omit irrelevant gates.
+
+Treat `building=roof`, `building:part=roof`, canopies, carports, shelters, and
+non-building `covered=yes` surfaces as open covered structures. Require a thin
+roof deck, explicit clearance, bounded perimeter supports, and no false enclosing
+walls. Build mapped trees, benches, street lamps, bicycle parking, bollards,
+hydrants, cabinets, signs, transit details, public art, monuments, fountains and
+playground equipment in their semantic `BLK_*` collections; cap them by radius
+and count. Record all procedural supports, symbolic artwork and object parts as
+inferred, distinct from mapped existence/location.
 
 ### 5. Initialize measurable state
 
